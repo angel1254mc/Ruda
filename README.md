@@ -1,2 +1,2 @@
 # Ruda
-Repository for Renderware project
+Repository for RenderWare project
