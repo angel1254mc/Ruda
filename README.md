@@ -1,2 +1,2 @@
 # Ruda
-Repository for RenderWare project
+Repository for RenderWare's custom built graphics API Ruda and its developer interface RudaDI
