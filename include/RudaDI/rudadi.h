@@ -6,13 +6,13 @@
 #include <iostream>
 using namespace std;
 
-class RudaDIWindow;
-class RudaDIMonitor;
-class RudaDIError;
+class RudaDIWindow; // See https://github.com/glfw/glfw/blob/d7e7b164bc0df637d120f1f0543553f454ced091/src/internal.h#L521
+class RudaDIMonitor; // See https://github.com/glfw/glfw/blob/d7e7b164bc0df637d120f1f0543553f454ced091/src/internal.h#L582a
 
 class RudaDI {
-    Display *display;
+    Display* display;
     RudaDIWindow window;
+    int screen;
     XEvent currEvent;
     int screen;
     bool shouldClose;
@@ -23,6 +23,7 @@ public:
      * default rudadi configuration and creates all internal
      * memory objects needed to get started w/ creating windows and such
     */
+    RudaDI();
     bool rudaInit();
     bool rudaTerminate();
     void rudaInitHint();
@@ -174,5 +175,10 @@ public:
     void rudaSwapBuffers(RudaDIWindow* window);
     // This is mainly for vsync. See https://github.com/glfw/glfw/blob/8f2f766f0d2ed476c03a2ae02e48ac41a9602b03/include/GLFW/glfw3.h#L6168
     void rudaSwapInterval(int interval);
-    
+
+}
+
+
+class RudaDIWindow {
+    RudaDIWindow()
 }
