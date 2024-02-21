@@ -150,7 +150,29 @@ public:
     /// @return array of double values, corresponding to xpos and ypos of where the cursor is relative to left edge of content area
     double* rudaGetMouseButton(RudaDIWindow* window);
 
-    RudaDICursor* rudaCreateStandardCursor()
+    RudaDICursor* rudaCreateStandardCursor();
+    void rudaDestroyCursor(RudaDICursor* cursor);
+    void rudaSetCursor(RudaDIWindow* window, RudaDICursor* cursor);
+    /// @brief 
+    /// @param window 
+    /// @param callbackFunc 
+    /// @callback_Signature
+    /// func(RudaDIWindow window, int key, int scancode, int action, int mods????)
+    void rudaSetKeyCallback(RudaDIWindow* window,  void(*callbackFunc)(RudaDIWindow, int, int, int, int));
+    void rudaSetMouseButtonCallback(RudaDIWindow* window, void(*callbackFunc)(RudaDiWindow* window, int button, int action, int mods));
+    void rudaSetCursorPosCallback(RudaDIWindow* window, void(*callbackFunc)(RudaDiWindow* window, double xpos, double ypos));
+    // void rudaSetCursorEnterCallback(RudaDIWindow* window, void(*callbackFunc)(RudaDiWindow* window, bool entered)));
+
+    // see GLFWscrollfun  callback for more details on the callback params
+    void rudaSetScrollCallback(RudaDIWindow* window, void(*callbackFunc)(RudaDiWindow* window, double xoffset, double yoffset));
 
 
+
+    // Finally context related functions 🥲🥲🥲
+    void rudaMakeContextCurrent(RudaDIWindow* window);
+    RudaDIWindow* rudaGetCurrentContext();
+    void rudaSwapBuffers(RudaDIWindow* window);
+    // This is mainly for vsync. See https://github.com/glfw/glfw/blob/8f2f766f0d2ed476c03a2ae02e48ac41a9602b03/include/GLFW/glfw3.h#L6168
+    void rudaSwapInterval(int interval);
+    
 }
