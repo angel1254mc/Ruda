@@ -15,7 +15,7 @@ int main() {
     cout << "Finished creating window" << endl;
     
     while (true) {
-    	XDrawLine(rudaDI->display, window->xWindow, window->gc, 0, 0, 300, 300);
+    	
     	XFlush(rudaDI->display);
     }
     

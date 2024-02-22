@@ -7,47 +7,51 @@
 #include <unistd.h>
 #include <iostream>
 #include "../Util/color.h"
-using namespace std;
-
-class RudaDIWindow; // See https://github.com/glfw/glfw/blob/d7e7b164bc0df637d120f1f0543553f454ced091/src/internal.h#L521
-class RudaDIMonitor; // See https://github.com/glfw/glfw/blob/d7e7b164bc0df637d120f1f0543553f454ced091/src/internal.h#L582a
-class RudaDICursor; // Don't think ima implement this
-
-
-
-
-    void (*windowResizeCallback)(int, int) = nullptr;
+#include "../Ruda/ruda.h"
+#include "di_structs.h"
+	
+	
+	//TO DO:
+	
+	//void rudaInitHint(); Sets hints for initialization
+	//bool diTerminate();
+	
+	/* Callback functions to be implemented at a later date
+	void (*windowResizeCallback)(int, int) = nullptr;
     void (*windowClosCallback)() = nullptr;
     void (*windowFocusCallback)() = nullptr;
     void (*windowIconifyCallback)(RudaDIWindow*, int) = nullptr;
     void (*windowMaximizeCallback)(RudaDIWindow*, int) = nullptr;
     void (*windowFramebufferSizeCallback)(RudaDIWindow*, float, float) = nullptr;
     void (*windowContentScaleCallback)(RudaDIWindow*, float, float) = nullptr;
+
+    
     void (*keyCallback)(RudaDIWindow*, int, int, int) = nullptr;
+    
     void (*mouseButtonCallback)(RudaDIWindow* window, int button, bool pressed, int mods);
     void (*cursorPosCallback)(RudaDIWindow* window, double xpos, double ypos);
     void (*scrollCallback)(RudaDIWindow* window, double xoffset, double yoffset);
-
+	*/
     /**
      * Calls "terminate" if necessary, initializes
      * default rudadi configuration and creates all internal
      * memory objects needed to get started w/ creating windows and such
     */
-    RudaDI();
-    ~RudaDI();
-    bool rudaInit();
-    bool rudaTerminate();
-    void rudaInitHint();
 
-    RudaDIMonitor rudaGetMonitors(int* count);
-    RudaDIMonitor rudaGetPrimaryMonitor(int* count);
+	static DI_Structure structure = DI_Structure(); //global structure referenced everywhere
+
+	bool diInit();
+    
+
+    DI_Monitor diGetMonitors(int* count);
+    DI_Monitor diGetPrimaryMonitor(int* count);
     
     /// @brief Resets all window hints to default values
-    void rudaDefaultWindowHints();
+    void diDefaultWindowHints();
     /// @brief Sets specific window hint to value
     /// @param hint integer/enum representation of hint to set
     /// @param value integer/enum representation of hint value
-    void rudaWindowHint(int hint, int value);
+    void diWindowHint(int hint, int value);
     
     /// @brief Sets specific window hint to value
     /// @param width width of window
@@ -56,7 +60,7 @@ class RudaDICursor; // Don't think ima implement this
     /// @param monitor Monitor on which to create window
     /// @param window OPTIONAL additional window to share resources with
     /// @returns RudaDIWindow object corresponding to newly created window
-    RudaDIWindow* rudaCreateWindow(int width, int height, const string title, RudaDIMonitor* monitor, RudaDIWindow* window);
+    DI_Window* diCreateWindow(unsigned int width, unsigned int height, const string title, DI_Monitor* monitor, DI_Window* window);
 
     /// @brief Destroys window and associated resources
     /// @param window RudaDIWindow object to destroy
@@ -190,26 +194,9 @@ class RudaDICursor; // Don't think ima implement this
     void processEvent(XEvent* event);
 
 
-
-class RudaDIWindow {
-    public: 
-        Window xWindow;
-        int width;
-        int height;
-        string title;
-        RudaDI* rudaDI;
-        GC gc;
-        RudaDIWindow();
-        RudaDIWindow(Window* window, int width, int height, string title, RudaDI* rudaDILibrary);
-        ~RudaDIWindow();
-
-};
-
-
 void diDrawLine (unsigned int x_origin, unsigned int y_origin, unsigned int x_dest, unsigned int y_dest, Color color);
 
-void diDrawLine (unsigned int x_origin, unsigned int y_origin, unsigned int x_dest, unsigned int y_dest, unsigned int r, unsigned int g, unsigned int b) :
- diDrawLine(x_origin, y_origin, x_dest, y_dest, Color(r, g, b) );
+void diDrawLine (unsigned int x_origin, unsigned int y_origin, unsigned int x_dest, unsigned int y_dest, unsigned int r, unsigned int g, unsigned int b) : diDrawLine(x_origin, y_origin, x_dest, y_dest, Color(r, g, b));
 
 
 

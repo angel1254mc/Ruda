@@ -8,9 +8,14 @@
 #include <iostream>
 #include <vector>
 #include "../Util/color.h"
+#include "../Ruda/ruda.h"
+#include "di.h"
+
 
 struct DI_Structure;
 struct DI_Window;
+struct DI_Monitor;
+struct DI_Cursor;
 
 struct DI_Structure {
 
@@ -27,10 +32,22 @@ struct DI_Structure {
 	XEvent currentEvent;
 	
 	bool shouldClose;
+	
+	DI_Structure(){};
+	
+	~DI_Structure();
+	
 }; 
 
-stuct DI_Window {
+struct DI_Window {
 
+	Window xWindow;
+	unsigned int width;
+	unsigned int height;
+	string title;
+	Ruda_Context* context;
 
-}
-
+	DI_Window();
+	DI_Window(XWindow* xWindow, unsigned int width, unsigned int height, string title);
+	~DI_Window();
+};
