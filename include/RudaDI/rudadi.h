@@ -1,5 +1,7 @@
 #pragma once
 #include <X11/Xlib.h>
+#include <X11/Xutil.h>
+#include <X11/Xresource.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -8,15 +10,16 @@ using namespace std;
 
 class RudaDIWindow; // See https://github.com/glfw/glfw/blob/d7e7b164bc0df637d120f1f0543553f454ced091/src/internal.h#L521
 class RudaDIMonitor; // See https://github.com/glfw/glfw/blob/d7e7b164bc0df637d120f1f0543553f454ced091/src/internal.h#L582a
+class RudaDICursor; // Don't think ima implement this
 
 class RudaDI {
+    public:
     Display* display;
-    RudaDIWindow window;
-    int screen;
+    RudaDIWindow* window;
+    Window root;
+    int screen = -1;
     XEvent currEvent;
-    int screen;
     bool shouldClose;
-public:
 
     /**
      * Calls "terminate" if necessary, initializes
@@ -24,6 +27,7 @@ public:
      * memory objects needed to get started w/ creating windows and such
     */
     RudaDI();
+    ~RudaDI();
     bool rudaInit();
     bool rudaTerminate();
     void rudaInitHint();
@@ -45,7 +49,7 @@ public:
     /// @param monitor Monitor on which to create window
     /// @param window OPTIONAL additional window to share resources with
     /// @returns RudaDIWindow object corresponding to newly created window
-    RudaDIWindow rudaCreateWindow(int width, int height, const string title, RudaDIMonitor* monitor, RudaDIWindow* window);
+    RudaDIWindow* rudaCreateWindow(int width, int height, const string title, RudaDIMonitor* monitor, RudaDIWindow* window);
 
     /// @brief Destroys window and associated resources
     /// @param window RudaDIWindow object to destroy
@@ -110,7 +114,7 @@ public:
     /// @param width width of window (screen coords)
     /// @param height height of window (screen cords_)
     /// @param refreshRate desired refresh rate of mode (optional)
-    void rudaSetWindowMonitor(RudaDIWindow* window, GLFWmonitor* monitor, int xpos, int ypos, int width, int height, int refreshRate);
+    void rudaSetWindowMonitor(RudaDIWindow* window, RudaDIMonitor* monitor, int xpos, int ypos, int width, int height, int refreshRate);
 
     /// @brief returns the value of an attribute of the specified window or its Ruda context.
     /// @param window window object
@@ -160,12 +164,12 @@ public:
     /// @callback_Signature
     /// func(RudaDIWindow window, int key, int scancode, int action, int mods????)
     void rudaSetKeyCallback(RudaDIWindow* window,  void(*callbackFunc)(RudaDIWindow, int, int, int, int));
-    void rudaSetMouseButtonCallback(RudaDIWindow* window, void(*callbackFunc)(RudaDiWindow* window, int button, int action, int mods));
-    void rudaSetCursorPosCallback(RudaDIWindow* window, void(*callbackFunc)(RudaDiWindow* window, double xpos, double ypos));
-    // void rudaSetCursorEnterCallback(RudaDIWindow* window, void(*callbackFunc)(RudaDiWindow* window, bool entered)));
+    void rudaSetMouseButtonCallback(RudaDIWindow* window, void(*callbackFunc)(RudaDIWindow* window, int button, int action, int mods));
+    void rudaSetCursorPosCallback(RudaDIWindow* window, void(*callbackFunc)(RudaDIWindow* window, double xpos, double ypos));
+    // void rudaSetCursorEnterCallback(RudaDIWindow* window, void(*callbackFunc)(RudaDIWindow* window, bool entered)));
 
     // see GLFWscrollfun  callback for more details on the callback params
-    void rudaSetScrollCallback(RudaDIWindow* window, void(*callbackFunc)(RudaDiWindow* window, double xoffset, double yoffset));
+    void rudaSetScrollCallback(RudaDIWindow* window, void(*callbackFunc)(RudaDIWindow* window, double xoffset, double yoffset));
 
 
 
@@ -176,9 +180,19 @@ public:
     // This is mainly for vsync. See https://github.com/glfw/glfw/blob/8f2f766f0d2ed476c03a2ae02e48ac41a9602b03/include/GLFW/glfw3.h#L6168
     void rudaSwapInterval(int interval);
 
-}
+};
 
 
 class RudaDIWindow {
-    RudaDIWindow()
-}
+    public: 
+        Window xWindow;
+        int width;
+        int height;
+        string title;
+        RudaDI* rudaDI;
+        GC gc;
+        RudaDIWindow();
+        RudaDIWindow(Window* window, int width, int height, string title, RudaDI* rudaDILibrary);
+        ~RudaDIWindow();
+
+};
