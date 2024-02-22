@@ -21,6 +21,18 @@ class RudaDI {
     XEvent currEvent;
     bool shouldClose;
 
+    void (*windowResizeCallback)(int, int) = nullptr;
+    void (*windowClosCallback)() = nullptr;
+    void (*windowFocusCallback)() = nullptr;
+    void (*windowIconifyCallback)(RudaDIWindow*, int) = nullptr;
+    void (*windowMaximizeCallback)(RudaDIWindow*, int) = nullptr;
+    void (*windowFramebufferSizeCallback)(RudaDIWindow*, float, float) = nullptr;
+    void (*windowContentScaleCallback)(RudaDIWindow*, float, float) = nullptr;
+    void (*keyCallback)(RudaDIWindow*, int, int, int) = nullptr;
+    void (*mouseButtonCallback)(RudaDIWindow* window, int button, bool pressed, int mods);
+    void (*cursorPosCallback)(RudaDIWindow* window, double xpos, double ypos);
+    void (*scrollCallback)(RudaDIWindow* window, double xoffset, double yoffset);
+
     /**
      * Calls "terminate" if necessary, initializes
      * default rudadi configuration and creates all internal
@@ -128,11 +140,11 @@ class RudaDI {
     void rudaSetWindowSizeCallback(RudaDIWindow* window, void (*callbackFunc)(int, int));
     void rudaSetWindowCloseCallback(RudaDIWindow* window, void (*callbackFunc)());
     void rudaSetWindowFocusCallback(RudaDIWindow* window, void(*callbackFunc)());
-    void rudaSetWindowIconifyCallback(RudaDIWindow* window, void(*callbackFunc)(RudaDIWindow, int));
-    void rudaSetWindowMaximizeCallback(RudaDIWindow* window, void(*callbackFunc)(RudaDIWindow, int));
+    void rudaSetWindowIconifyCallback(RudaDIWindow* window, void(*callbackFunc)(RudaDIWindow*, int));
+    void rudaSetWindowMaximizeCallback(RudaDIWindow* window, void(*callbackFunc)(RudaDIWindow*, int));
     // Pretty sure this is relevant for resizing textures/images attached to a framebuffer since it doesn't get done automatically
-    void rudaSetFramebufferSizeCallback(RudaDIWindow* window, void(*callbackFunc)(RudaDIWindow, float, float));
-    void rudaSetWindowContenntScaleCallback(RudaDIWindow* window, void(*callbackFunc)(RudaDIWindow, float, float));
+    void rudaSetFramebufferSizeCallback(RudaDIWindow* window, void(*callbackFunc)(RudaDIWindow*, float, float));
+    void rudaSetWindowContentScaleCallback(RudaDIWindow* window, void(*callbackFunc)(RudaDIWindow*, float, float));
 
     /// @brief processes all pending events in queue (event listening on another thread, implemented by x11, see _glfwPollEventsX11)
     void rudaPollEvents();
@@ -162,9 +174,9 @@ class RudaDI {
     /// @param window 
     /// @param callbackFunc 
     /// @callback_Signature
-    /// func(RudaDIWindow window, int key, int scancode, int action, int mods????)
-    void rudaSetKeyCallback(RudaDIWindow* window,  void(*callbackFunc)(RudaDIWindow, int, int, int, int));
-    void rudaSetMouseButtonCallback(RudaDIWindow* window, void(*callbackFunc)(RudaDIWindow* window, int button, int action, int mods));
+    /// func(RudaDIWindow window, int key, int action, int mods????)
+    void rudaSetKeyCallback(RudaDIWindow* window,  void(*callbackFunc)(RudaDIWindow*, int, int, int));
+    void rudaSetMouseButtonCallback(RudaDIWindow* window, void(*callbackFunc)(RudaDIWindow* window, int button, bool pressed, int mods));
     void rudaSetCursorPosCallback(RudaDIWindow* window, void(*callbackFunc)(RudaDIWindow* window, double xpos, double ypos));
     // void rudaSetCursorEnterCallback(RudaDIWindow* window, void(*callbackFunc)(RudaDIWindow* window, bool entered)));
 
@@ -179,6 +191,8 @@ class RudaDI {
     void rudaSwapBuffers(RudaDIWindow* window);
     // This is mainly for vsync. See https://github.com/glfw/glfw/blob/8f2f766f0d2ed476c03a2ae02e48ac41a9602b03/include/GLFW/glfw3.h#L6168
     void rudaSwapInterval(int interval);
+
+    void processEvent(XEvent* event);
 
 };
 
