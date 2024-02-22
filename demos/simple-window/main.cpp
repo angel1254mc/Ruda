@@ -13,10 +13,10 @@ int main() {
     
     RudaDIWindow* window = rudaDI->rudaCreateWindow(300, 300, "my-basic-window", NULL, NULL);
     cout << "Finished creating window" << endl;
-    for (int i = 0; i < 300; i++) {
-        XDrawLine(rudaDI->display, window->xWindow, window->gc, i, i, i, i);
-        XFlush(rudaDI->display);
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    
+    while (true) {
+    	XDrawLine(rudaDI->display, window->xWindow, window->gc, 0, 0, 300, 300);
+    	XFlush(rudaDI->display);
     }
     
     cin >> inputBlocking;

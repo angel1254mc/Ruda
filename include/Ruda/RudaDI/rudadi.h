@@ -6,20 +6,15 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <iostream>
+#include "../Util/color.h"
 using namespace std;
 
 class RudaDIWindow; // See https://github.com/glfw/glfw/blob/d7e7b164bc0df637d120f1f0543553f454ced091/src/internal.h#L521
 class RudaDIMonitor; // See https://github.com/glfw/glfw/blob/d7e7b164bc0df637d120f1f0543553f454ced091/src/internal.h#L582a
 class RudaDICursor; // Don't think ima implement this
 
-class RudaDI {
-    public:
-    Display* display;
-    RudaDIWindow* window;
-    Window root;
-    int screen = -1;
-    XEvent currEvent;
-    bool shouldClose;
+
+
 
     void (*windowResizeCallback)(int, int) = nullptr;
     void (*windowClosCallback)() = nullptr;
@@ -194,7 +189,6 @@ class RudaDI {
 
     void processEvent(XEvent* event);
 
-};
 
 
 class RudaDIWindow {
@@ -210,3 +204,14 @@ class RudaDIWindow {
         ~RudaDIWindow();
 
 };
+
+
+void diDrawLine (unsigned int x_origin, unsigned int y_origin, unsigned int x_dest, unsigned int y_dest, Color color);
+
+void diDrawLine (unsigned int x_origin, unsigned int y_origin, unsigned int x_dest, unsigned int y_dest, unsigned int r, unsigned int g, unsigned int b) :
+ diDrawLine(x_origin, y_origin, x_dest, y_dest, Color(r, g, b) );
+
+
+
+
+
