@@ -1,34 +1,33 @@
-# Compiler and compiler flags
+# Compiler settings - Can be customized.
 CXX = g++
-CXXFLAGS = -Iinclude/RudaDI -Wall -O2 -std=c++11
-LDFLAGS = -L/usr/lib -lX11 # Add xLib library
+CXXFLAGS = -Iinclude -Wall -Wextra -std=c++11
 
-# Source and build directories
-SRC_DIR = src/rudadi
-BUILD_DIR = build
-OBJ_DIR = $(BUILD_DIR)/obj
-LIB_DIR = $(BUILD_DIR)
+# Project structure
+SRCDIR = src/RudaDI
+INCDIR = include/Ruda/RudaDI
+BUILDDIR = build
+TARGET = $(BUILDDIR)/librudadi.a
 
-# Library name
-LIB_NAME = librudadi.a
+# Find all CPP files in the SRCDIR
+SRC = $(wildcard $(SRCDIR)/*.cpp)
 
-# Source files and object files
-SOURCES = $(wildcard $(SRC_DIR)/*.cpp)
-OBJECTS = $(SOURCES:$(SRC_DIR)/%.cpp=$(OBJ_DIR)/%.o)
+# Object files correspond to SRC
+OBJ = $(SRC:$(SRCDIR)/%.cpp=$(BUILDDIR)/%.o)
 
-# Default target
-all: $(LIB_DIR)/$(LIB_NAME)
+# Default make
+all: $(TARGET)
 
-# Rule to make the object files
-$(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
+# Static library creation
+$(TARGET): $(OBJ)
+	ar rcs $@ $^
+
+# Compile each CPP file
+$(BUILDDIR)/%.o: $(SRCDIR)/%.cpp
 	@mkdir -p $(@D)
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-# Rule to make the static library
-$(LIB_DIR)/$(LIB_NAME): $(OBJECTS)
-	@mkdir -p $(@D)
-	ar rcs $@ $(OBJECTS)
-
-# Clean the build directory
+# Clean build files
 clean:
-	rm -rf $(BUILD_DIR)
+	rm -rf $(BUILDDIR)
+	
+

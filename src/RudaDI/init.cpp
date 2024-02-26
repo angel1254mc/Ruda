@@ -1,5 +1,6 @@
 #pragma once
-#include "../../include/RudaDI/di.h"
+#include "../../include/Ruda/RudaDI/di_structs.h"
+#include "../../include/Ruda/RudaDI/di.h"
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 #include <X11/Xresource.h>
@@ -8,21 +9,46 @@
 #include <unistd.h>
 #include <iostream>
 #define NIL (0)
-// Initializes  
 
+DI_Structure* structure;
+
+static XWindow createHelperWindow() {
+    XSetWindowAttributes wa;
+    wa.event_mask = PropertyChangeMask;
+
+    return XCreateWindow(
+        structure->display,
+        structure->root, 
+        0, 0, 1, 1, 0, 0,
+        InputOnly,
+        DefaultVisual(structure->display, structure->screen),
+        CWEventMask, &wa);
+};
 
 bool diInit() {
+
+    if (structure != nullptr && structure->initialized) {
+        return true;
+    }
+
+    structure = new DI_Structure();
 	
     structure->display = XOpenDisplay(NIL);
     structure->screen = DefaultScreen(structure->display);
     structure->root = RootWindow(structure->display, structure->screen);
-    // initialize variables such as
-    // shouldClose
-    // isMaximized
-    // is Minimized
-    // isFullScreen
-    // defaultCursor
-    // etc.
+
+    // getSystemContentScale here https://github.com/glfw/glfw/blob/7b6aead9fb88b3623e3b3725ebb42670cbe4c579/src/x11_init.c#L1528
+
+    // Initialize Extensions 
+
+    structure->helperWindowHandle = createHelperWindow();
+    
+    // Create a hidden cursor
+    //structure->hiddenCursorHandle = createHiddenCursor();
+
+    // In a more  complicated application, we would have accounted for additional languages and keys using an InputContext and an XIM.
+    // However, since we're almost exclusively using English we can simply use the default Event Masks available for use with 
+    // SelectInput :-)
 
     // Initialize GLX after all variables have been initialized
     if (!structure->display || (structure->screen == -1) || !structure->root) {
@@ -33,33 +59,17 @@ bool diInit() {
         return false;
     }
 
+    // handle multi-monitor initialization here. This would typically involve using
+    // RandR to setup a big virtual "monitor" representation across all connected monitors
+    // See _glfwPollMonitors in GLFW for a good idea of how this works https://github.com/glfw/glfw/blob/master/src/x11_monitor.c#L101
+
+    // Finally, initialize Hints. Hints afaik are just ways of telling the library prior to initialization of a window what we want the
+    // Window to look and act like (should it be resizable, decorated, transparent, etc)
+    // These hints should be stored in the windowConfig, and framebufferConfig
+
+    
+
+    structure->initialized = true;
     return true;
     
-}
-
-DI_Window* diCreateWindow(unsigned int width, unsigned int height, string title, DI_Monitor* monitor, DI_Window* window) {
-    XVisual* visual = DefaultVisual(structure->display, structure->screen);
-    int depth = DefaultDepth(structure->display, structure->screen);
-
-    // Create Simple Window
-    XWindow xWindow = XCreateSimpleWindow(structure->display, structure->root, 0, 0, width, height, 0, BlackPixel(structure->display, structure->screen), BlackPixel(structure->display, structure->screen));
-
-    std::cout << "Created Window " << xWindow << std::endl;
-    
-    // Map Window to make it viewable
-    
-    XMapWindow(structure->display, xWindow);
-    XStoreName(structure->display, xWindow, title.c_str());
-    XFlush(structure->display);
-
-    std::cout << "Made it to post-flush" << std::endl;
-    
-    // Do everything else in window constructor
-    // such as:
-    // create graphics context
-    // set foreground
-    // 
-    structure->window = new DI_Window(&xWindow, width, height, title);
-
-    return structure->window;
-}
+};

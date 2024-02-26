@@ -1,23 +1,30 @@
 // Your First C++ Program
-#include "rudadi.h"
+#include "di.h"
+#include "di_structs.h"
 #include <iostream>
 #include <stdlib.h>
 #include <chrono>
 #include <thread>
 
 int main() {
-    string inputBlocking;
-    RudaDI* rudaDI = new RudaDI();
-    // Start up everything needed for the window
-    rudaDI->rudaInit();
+    std::string inputBlocking;
     
-    RudaDIWindow* window = rudaDI->rudaCreateWindow(300, 300, "my-basic-window", NULL, NULL);
-    cout << "Finished creating window" << endl;
+    // Start up everything needed for the window
+    std::cout << "Initializing Library..." << std::endl;
+    diInit();
+    std::cout << "Finished Initializing Library" << std::endl;
+
+    DI_Structure* structure = diGetStructure();
+
+    std::cout << "Successfully got Library Struct" << std::endl;
+
+    DI_Window* window = diCreateWindow(300, 300, "my-basic-window", NULL, NULL);
+    
+    std::cout << "Finished creating window" << std::endl;
     
     while (true) {
-    	
-    	XFlush(rudaDI->display);
+        XFlush(structure->display);
     }
     
-    cin >> inputBlocking;
+    std::cin >> inputBlocking;
 }
