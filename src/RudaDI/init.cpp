@@ -13,7 +13,7 @@
 
 
 bool diInit() {
-	//structure = new DI_Structure(); //global structure referenced everywhere
+	structure = new DI_Structure(); //global structure referenced everywhere
     structure->display = new DI_Display(XOpenDisplay(NIL));
     structure->screen = DefaultScreen(structure->display);
     std::cout << "setting root..." << std::endl;
@@ -63,6 +63,7 @@ DI_Window* diCreateWindow(unsigned int width, unsigned int height, std::string t
     // create graphics context
     // set foreground
     // 
+    
     structure->currentWindow = new DI_Window(xWindow, width, height, title);
     std::cout << "set currentWindow" << std::endl;
     structure->windows.push_back(structure->currentWindow);

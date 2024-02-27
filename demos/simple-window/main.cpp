@@ -7,8 +7,8 @@
 #include "../../src/RudaDI/display.cpp"
 #include <iostream>
 #include <stdlib.h>
-//#include <chrono>
-//#include <thread>
+#include <chrono>
+#include <thread>
 #include <string>
 
 int main() {
@@ -16,12 +16,12 @@ int main() {
     // Start up everything needed for the window
     diInit();
     
-    diCreateWindow(300, 300, "my-basic-window", NULL, NULL);
+    diCreateWindow(1920, 1080, "my-basic-window", NULL, NULL);
 
     std::cout << "Finished creating window" << std::endl;
     
     while (true) {
-    	diDrawLine(0,0,100,100, 255, 255, 255);
+    	diDrawLine(0,0,structure->currentWindow->width,structure->currentWindow->height, 0, 255, 255);
     	XFlush(structure->display->xDisplay);
     }
     

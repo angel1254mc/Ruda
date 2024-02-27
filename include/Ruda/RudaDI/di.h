@@ -12,7 +12,7 @@
 #include "di_structs.h"
 	struct DI_Structure;
     
-	DI_Structure* structure = new DI_Structure(); //global structure referenced everywhere
+	DI_Structure* structure = nullptr; //global structure referenced everywhere
 
 
 	//TO DO:

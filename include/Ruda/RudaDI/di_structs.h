@@ -42,7 +42,7 @@ struct DI_Structure {
 
 struct DI_Window {
 
-	XWindow* xWindow;
+	XWindow xWindow;
 	unsigned int width;
 	unsigned int height;
 	std::string title;
