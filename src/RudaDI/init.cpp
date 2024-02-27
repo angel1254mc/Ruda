@@ -1,5 +1,6 @@
-#pragma once
-#include "../../include/RudaDI/di.h"
+#include "../../include/Ruda/RudaDI/di.h"
+#include "../../include/Ruda/RudaDI/di_structs.h"
+
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 #include <X11/Xresource.h>
@@ -12,10 +13,13 @@
 
 
 bool diInit() {
-	
-    structure->display = XOpenDisplay(NIL);
+	//structure = new DI_Structure(); //global structure referenced everywhere
+    structure->display = new DI_Display(XOpenDisplay(NIL));
     structure->screen = DefaultScreen(structure->display);
-    structure->root = RootWindow(structure->display, structure->screen);
+    std::cout << "setting root..." << std::endl;
+    structure->root = RootWindow(structure->display->xDisplay, structure->screen);
+    std::cout << "root set" << std::endl;
+    
     // initialize variables such as
     // shouldClose
     // isMaximized
@@ -37,20 +41,20 @@ bool diInit() {
     
 }
 
-DI_Window* diCreateWindow(unsigned int width, unsigned int height, string title, DI_Monitor* monitor, DI_Window* window) {
+DI_Window* diCreateWindow(unsigned int width, unsigned int height, std::string title, DI_Monitor* monitor, DI_Window* window) {
     XVisual* visual = DefaultVisual(structure->display, structure->screen);
     int depth = DefaultDepth(structure->display, structure->screen);
 
     // Create Simple Window
-    XWindow xWindow = XCreateSimpleWindow(structure->display, structure->root, 0, 0, width, height, 0, BlackPixel(structure->display, structure->screen), BlackPixel(structure->display, structure->screen));
+    XWindow xWindow = XCreateSimpleWindow(structure->display->xDisplay, structure->root, 0, 0, width, height, 0, BlackPixel(structure->display->xDisplay, structure->screen), BlackPixel(structure->display->xDisplay, structure->screen));
 
     std::cout << "Created Window " << xWindow << std::endl;
     
     // Map Window to make it viewable
     
-    XMapWindow(structure->display, xWindow);
-    XStoreName(structure->display, xWindow, title.c_str());
-    XFlush(structure->display);
+    XMapWindow(structure->display->xDisplay, xWindow);
+    XStoreName(structure->display->xDisplay, xWindow, title.c_str());
+    XFlush(structure->display->xDisplay);
 
     std::cout << "Made it to post-flush" << std::endl;
     
@@ -59,7 +63,8 @@ DI_Window* diCreateWindow(unsigned int width, unsigned int height, string title,
     // create graphics context
     // set foreground
     // 
-    structure->window = new DI_Window(&xWindow, width, height, title);
-
-    return structure->window;
+    structure->currentWindow = new DI_Window(xWindow, width, height, title);
+    std::cout << "set currentWindow" << std::endl;
+    structure->windows.push_back(structure->currentWindow);
+    return structure->currentWindow;
 }

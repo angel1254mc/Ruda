@@ -7,8 +7,8 @@ struct Ruda_Context;
 
 struct Ruda_Context {
 
-	GC context;
+	XContext xContext;
 
-	Ruda_Context(GC context) {this->context = context};
+	Ruda_Context(XContext xContext) {this->xContext = xContext;};
 
 };

@@ -1,6 +1,6 @@
 # Compiler and compiler flags
 CXX = g++
-CXXFLAGS = -Iinclude/RudaDI -Wall -O2 -std=c++11
+CXXFLAGS = -Iinclude/Ruda/RudaDI -Wall -O2 -std=c++11
 LDFLAGS = -L/usr/lib -lX11 # Add xLib library
 
 # Source and build directories

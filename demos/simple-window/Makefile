@@ -1,6 +1,6 @@
 # Compiler and compiler flags
 CXX = g++
-CXXFLAGS = -Wall -O2 -std=c++11 -I../../include/RudaDI
+CXXFLAGS = -Wall -O2 -std=c++11 -I../../include/Ruda/RudaDI
 LDFLAGS = -L../../build -lrudadi -lX11 # Adjusted to point two directories up
 
 # Name of the executable

@@ -7,8 +7,10 @@
 #include <unistd.h>
 #include <iostream>
 #include <vector>
+#include <string>
 #include "../Util/color.h"
 #include "../Ruda/ruda.h"
+#include "../Ruda/structs.h"
 #include "di.h"
 
 
@@ -16,16 +18,17 @@ struct DI_Structure;
 struct DI_Window;
 struct DI_Monitor;
 struct DI_Cursor;
+struct DI_Display;
 
 struct DI_Structure {
 
-	Vector<DI_Window*> windows;
+	std::vector<DI_Window*> windows;
 	
 	DI_Window* currentWindow;
 	
 	DI_Display* display;
 	
-	Window root;
+	XWindow root;
 	
 	int screen = -1;
 	
@@ -33,21 +36,24 @@ struct DI_Structure {
 	
 	bool shouldClose;
 	
-	DI_Structure(){};
-	
 	~DI_Structure();
 	
 }; 
 
 struct DI_Window {
 
-	Window xWindow;
+	XWindow* xWindow;
 	unsigned int width;
 	unsigned int height;
-	string title;
+	std::string title;
 	Ruda_Context* context;
 
-	DI_Window();
-	DI_Window(XWindow* xWindow, unsigned int width, unsigned int height, string title);
+	DI_Window(XWindow xWindow, unsigned int width, unsigned int height, std::string title);
 	~DI_Window();
+};
+
+struct DI_Display {
+
+	XDisplay* xDisplay;
+	DI_Display(XDisplay* xDisplay);
 };

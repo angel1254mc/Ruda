@@ -6,13 +6,15 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <iostream>
+#include <string>
 #include "../Util/color.h"
 #include "../Ruda/ruda.h"
-#include "../Ruda/ruda.h"
-#include "../Ruda/ruda.h"
 #include "di_structs.h"
-	
-	
+	struct DI_Structure;
+    
+	DI_Structure* structure = new DI_Structure(); //global structure referenced everywhere
+
+
 	//TO DO:
 	
 	//void diInitHint(); Sets hints for initialization
@@ -50,8 +52,6 @@
      * memory objects needed to get started w/ creating windows and such
     */
 
-	static DI_Structure structure = DI_Structure(); //global structure referenced everywhere
-
 	bool diInit();
     
 
@@ -68,12 +68,12 @@
     /// @brief Sets specific window hint to value
     /// @param width width of window
     /// @param height height of window
-    /// @param title string title of window
+    /// @param title std::string title of window
     /// @param monitor Monitor on which to create window
     /// @param window OPTIONAL additional window to share resources with
     /// @returns DI_Window object corresponding to newly created window
     /// @returns DI_Window object corresponding to newly created window
-    DI_Window* diCreateWindow(unsigned int width, unsigned int height, const string title, DI_Monitor* monitor, DI_Window* window);
+    DI_Window* diCreateWindow(unsigned int width, unsigned int height, const std::string title, DI_Monitor* monitor, DI_Window* window);
 
     /// @brief Destroys window and associated resources
     /// @param window DI_Window object to destroy
@@ -95,18 +95,18 @@
 
     /// @brief returns title of window
     /// @param window window we are getting title of
-    /// @returns title string
-    string diGetWindowTitle(DI_Window* window);
-    string diGetWindowTitle(DI_Window* window);
+    /// @returns title std::string
+    std::string diGetWindowTitle(DI_Window* window);
+    std::string diGetWindowTitle(DI_Window* window);
 
     /// @brief returns title of window
     /// @param window window we are setting title of
-    /// @param title string title we set window to
-    void diSetWindowTitle(DI_Window* window, string title);
-    void diSetWindowTitle(DI_Window* window, string title);
+    /// @param title std::string title we set window to
+    void diSetWindowTitle(DI_Window* window, std::string title);
+    void diSetWindowTitle(DI_Window* window, std::string title);
 
-    void diSetWindowIcon(DI_Window* window,  string imagePath);
-    void diSetWindowIcon(DI_Window* window,  string imagePath);
+    void diSetWindowIcon(DI_Window* window,  std::string imagePath);
+    void diSetWindowIcon(DI_Window* window,  std::string imagePath);
     int* diGetWindowPos(DI_Window* window);
     int* diGetWindowPos(DI_Window* window);
     void diSetWindowPos(DI_Window* window, int x, int y);
@@ -225,8 +225,8 @@
     //void diSetInputMode(DI_Window* window, int mode, int value)
     //int diRawMouseMotionSupported();
     //int diRawMouseMotionSupported();
-    //string diGetKeyName(int key, int scancode);
-    //string diGetKeyName(int key, int scancode);
+    //std::string diGetKeyName(int key, int scancode);
+    //std::string diGetKeyName(int key, int scancode);
     //int diGetKeyScancode(int key);
     //int diGetKeyScancode(int key);
     //int diGetKey(DI_Window* window, int key);
@@ -304,7 +304,7 @@
 
 void diDrawLine (unsigned int x_origin, unsigned int y_origin, unsigned int x_dest, unsigned int y_dest, Color color);
 
-void diDrawLine (unsigned int x_origin, unsigned int y_origin, unsigned int x_dest, unsigned int y_dest, unsigned int r, unsigned int g, unsigned int b) : diDrawLine(x_origin, y_origin, x_dest, y_dest, Color(r, g, b));
+void diDrawLine (unsigned int x_origin, unsigned int y_origin, unsigned int x_dest, unsigned int y_dest, unsigned int r, unsigned int g, unsigned int b);
 
 
 
