@@ -1,10 +1,9 @@
 // Your First C++ Program
 #include "../../include/Ruda/RudaDI/di.h"
-#include "../../src/RudaDI/init.cpp"
-#include "../../src/RudaDI/di_window.cpp"
-#include "../../src/RudaDI/draw.cpp"
-#include "../../src/RudaDI/structure.cpp"
-#include "../../src/RudaDI/display.cpp"
+// #include "../../src/RudaDI/init.cpp"
+// #include "../../src/RudaDI/di_window.cpp"
+// #include "../../src/RudaDI/draw.cpp"
+// #include "../../src/RudaDI/structure.cpp"
 #include <iostream>
 #include <stdlib.h>
 #include <chrono>

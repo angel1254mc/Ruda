@@ -6,6 +6,9 @@ LDFLAGS = -L../../build -lrudadi -lX11 # Adjusted to point two directories up
 # Name of the executable
 EXEC = main
 
+# Dependencies
+DEPS = ../../src/RudaDI/structure.cpp ../../src/RudaDI/draw.cpp ../../src/RudaDI/di_window.cpp ../../src/RudaDI/init.cpp
+
 # Source file
 SOURCE = main.cpp
 
@@ -13,7 +16,7 @@ SOURCE = main.cpp
 all: $(EXEC)
 
 $(EXEC): $(SOURCE)
-	$(CXX) $(CXXFLAGS) $(SOURCE) -o $(EXEC) $(LDFLAGS)
+	$(CXX) $(CXXFLAGS) $(SOURCE) -o $(DEPS) $(EXEC) $(LDFLAGS)
 
 # Clean the build
 clean:
