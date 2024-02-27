@@ -51,6 +51,7 @@
 	//static DI_Structure structure = DI_Structure(); //global structure referenced everywhere
 
 	bool diInit();
+    bool diTerminate();
     DI_Structure* diGetStructure();
 
     DI_Monitor diGetMonitors(int* count);

@@ -36,6 +36,7 @@ bool diInit() {
     structure->display = XOpenDisplay(NIL);
     structure->screen = DefaultScreen(structure->display);
     structure->root = RootWindow(structure->display, structure->screen);
+    structure->context = XUniqueContext();
 
     // getSystemContentScale here https://github.com/glfw/glfw/blob/7b6aead9fb88b3623e3b3725ebb42670cbe4c579/src/x11_init.c#L1528
 
@@ -73,3 +74,9 @@ bool diInit() {
     return true;
     
 };
+
+bool diTerminate() {
+    // DI_Structure destructor handles deletion of windows,
+    // monitors, Freeing of connections
+    delete structure;
+}

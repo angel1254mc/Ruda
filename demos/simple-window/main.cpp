@@ -18,7 +18,7 @@ int main() {
 
     std::cout << "Successfully got Library Struct" << std::endl;
 
-    DI_Window* window = diCreateWindow(300, 300, "my-basic-window", NULL, NULL);
+    DI_Window* window = diCreateWindow(1200, 300, "my-basic-window", NULL, NULL);
     
     std::cout << "Finished creating window" << std::endl;
     
@@ -27,4 +27,6 @@ int main() {
     }
     
     std::cin >> inputBlocking;
+
+    diTerminate();
 }
