@@ -11,7 +11,7 @@
 #include "../Util/color.h"
 #include "../Ruda/ruda.h"
 #include "../Ruda/structs.h"
-#include "di.h"
+//#include "di.h"
 
 
 struct DI_Structure;
@@ -55,5 +55,5 @@ struct DI_Window {
 struct DI_Display {
 
 	XDisplay* xDisplay;
-	DI_Display(XDisplay* xDisplay);
+	DI_Display(XDisplay* xDisplay) {this->xDisplay = xDisplay;};
 };

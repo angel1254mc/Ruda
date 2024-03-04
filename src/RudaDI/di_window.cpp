@@ -1,5 +1,4 @@
-#include "../../include/Ruda/RudaDI/di.h"
-#include "../../include/Ruda/RudaDI/di_structs.h"
+#include "RudaDI/di.h"
 
 DI_Window::DI_Window (Window xWindow, unsigned int width, unsigned int height, std::string title) {
 	this->xWindow = xWindow;

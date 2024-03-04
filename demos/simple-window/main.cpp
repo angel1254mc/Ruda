@@ -1,5 +1,6 @@
 // Your First C++ Program
-#include "../../include/Ruda/RudaDI/di.h"
+#include "RudaDI/di.h"
+// #include "RudaDI/di_structs.h"
 // #include "../../src/RudaDI/init.cpp"
 // #include "../../src/RudaDI/di_window.cpp"
 // #include "../../src/RudaDI/draw.cpp"

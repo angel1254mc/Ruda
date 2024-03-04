@@ -1,5 +1,4 @@
-#include "../../include/Ruda/RudaDI/di.h"
-#include "../../include/Ruda/RudaDI/di_structs.h"
+#include "RudaDI/di.h"
 
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>

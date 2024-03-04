@@ -1,4 +1,5 @@
-#include "../../include/Ruda/RudaDI/di.h"
+/*
+#include "RudaDI/di.h"
 
 void diPollEvents() {
     // The point of polling events is to hit the X Window server 
@@ -11,8 +12,8 @@ void diPollEvents() {
      *      void rudaSetMouseButtonCallback(RudaDIWindow* window, void(*callbackFunc)(RudaDIWindow* window, int button, int action, int mods));
      *      void rudaSetCursorPosCallback(RudaDIWindow* window, void(*callbackFunc)(RudaDIWindow* window, double xpos, double ypos));
     */
-}
-
+//}
+/*
 void diProcessEvent(XEvent* event) {
     // handles the if/else structure to decide what callback to invoke
     switch(event->type) {
@@ -68,3 +69,4 @@ void diProcessEvent(XEvent* event) {
     }
 
 }
+*/
