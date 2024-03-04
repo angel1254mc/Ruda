@@ -12,7 +12,7 @@
 #include "di_structs.h"
 	//struct DI_Structure;
 
-
+    extern DI_Structure* structure; //global structure referenced everywhere
 	//TO DO:
 	
 	//void diInitHint(); Sets hints for initialization

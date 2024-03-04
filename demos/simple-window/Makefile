@@ -3,11 +3,11 @@ CXX = g++
 CXXFLAGS = -Wall -O2 -std=c++11 -I../../include/Ruda -Wno-unused-variable
 LDFLAGS = -L../../build/libs -lrudadi -lX11 # Adjusted to point two directories up
 
-# Name of the executable
-EXEC = main
+BUILD_DIR = ../../build
 
-# Dependencies
-DEPS = ../../src/RudaDI/structure.cpp ../../src/RudaDI/draw.cpp ../../src/RudaDI/di_window.cpp ../../src/RudaDI/init.cpp
+DEMO_DIR = $(BUILD_DIR)/demos
+# Name of the executable
+EXEC = $(DEMO_DIR)/simple-window
 
 # Source file
 SOURCE = main.cpp
@@ -16,7 +16,8 @@ SOURCE = main.cpp
 all: $(EXEC)
 
 $(EXEC): $(SOURCE)
-	$(CXX) $(CXXFLAGS) $(SOURCE) -o $(EXEC) $(DEPS) $(LDFLAGS)
+	@mkdir -p $(DEMO_DIR)
+	$(CXX) $(CXXFLAGS) $(SOURCE) -o $(EXEC) $(LDFLAGS)
 
 # Clean the build
 clean:

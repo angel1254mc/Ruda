@@ -37,9 +37,7 @@ struct DI_Structure {
 	
 	~DI_Structure();
 	
-}; 
-
-extern DI_Structure* structure; //global structure referenced everywhere
+};
 
 struct DI_Window {
 
