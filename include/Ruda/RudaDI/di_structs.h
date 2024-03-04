@@ -9,7 +9,6 @@
 #include <vector>
 #include <string>
 #include "../Util/color.h"
-#include "../Ruda/ruda.h"
 #include "../Ruda/structs.h"
 //#include "di.h"
 
@@ -39,6 +38,8 @@ struct DI_Structure {
 	~DI_Structure();
 	
 }; 
+
+extern DI_Structure* structure; //global structure referenced everywhere
 
 struct DI_Window {
 

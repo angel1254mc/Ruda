@@ -11,8 +11,6 @@
 #include "../Ruda/ruda.h"
 #include "di_structs.h"
 	//struct DI_Structure;
-    
-	DI_Structure* structure = nullptr; //global structure referenced everywhere
 
 
 	//TO DO:

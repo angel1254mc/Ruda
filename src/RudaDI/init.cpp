@@ -11,6 +11,8 @@
 // Initializes  
 
 
+DI_Structure* structure = nullptr;
+
 bool diInit() {
 	structure = new DI_Structure(); //global structure referenced everywhere
     structure->display = new DI_Display(XOpenDisplay(NIL));

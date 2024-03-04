@@ -1,7 +1,7 @@
 # Compiler and compiler flags
 CXX = g++
 CXXFLAGS = -Wall -O2 -std=c++11 -I../../include/Ruda -Wno-unused-variable
-LDFLAGS = -L../../build -lrudadi -lX11 # Adjusted to point two directories up
+LDFLAGS = -L../../build/libs -lrudadi -lX11 # Adjusted to point two directories up
 
 # Name of the executable
 EXEC = main
