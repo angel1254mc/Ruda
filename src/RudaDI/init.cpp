@@ -17,9 +17,10 @@ bool diInit() {
 	structure = new DI_Structure(); //global structure referenced everywhere
     structure->display = new DI_Display(XOpenDisplay(NIL));
     structure->screen = DefaultScreen(structure->display);
-    std::cout << "setting root..." << std::endl;
+    structure->xContext = XUniqueContext();
+    print("setting root...");
     structure->root = RootWindow(structure->display->xDisplay, structure->screen);
-    std::cout << "root set" << std::endl;
+    print("root set");
     
     // initialize variables such as
     // shouldClose
@@ -42,7 +43,7 @@ bool diInit() {
     
 }
 
-DI_Window* diCreateWindow(unsigned int width, unsigned int height, std::string title, DI_Monitor* monitor, DI_Window* window) {
+DI_Window* diCreateWindow(const str title, unsigned int width, unsigned int height, DI_Monitor* monitor, DI_Window* parentWindow) {
     XVisual* visual = DefaultVisual(structure->display, structure->screen);
     int depth = DefaultDepth(structure->display, structure->screen);
 
@@ -57,16 +58,25 @@ DI_Window* diCreateWindow(unsigned int width, unsigned int height, std::string t
     XStoreName(structure->display->xDisplay, xWindow, title.c_str());
     XFlush(structure->display->xDisplay);
 
-    std::cout << "Made it to post-flush" << std::endl;
+    print("Made it to post-flush");
     
     // Do everything else in window constructor
     // such as:
     // create graphics context
     // set foreground
-    // 
     
-    structure->currentWindow = new DI_Window(xWindow, width, height, title);
-    std::cout << "set currentWindow" << std::endl;
+    structure->currentWindow = new DI_Window(xWindow, title, width, height, parentWindow);
+
+    // The reason why XSaveContext matters is because it allows us to FIND our DI_Window object on events
+	// For instance, an XEvent will provide the xWindow where the event occured, but not the DI_Window
+	// By saving a pointer to our DI_Window alongside the xWindow, we can just call XFindContext(xWindow) to return a pointer
+	// to DI_Window
+	XSaveContext(structure->display->xDisplay,
+				xWindow,
+				structure->xContext,
+				(XPointer)&structure->currentWindow);
+    
+    print("set currentWindow");
     structure->windows.push_back(structure->currentWindow);
     return structure->currentWindow;
 }

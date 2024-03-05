@@ -11,12 +11,12 @@ int main() {
     // Start up everything needed for the window
     diInit();
     
-    diCreateWindow(1920, 1080, "simple-window", NULL, NULL);
+    diCreateWindow("simple-window", 1920, 1080);
 
-    std::cout << "Finished creating window" << std::endl;
+    print("Finished creating window");
     
     while (true) {
-    	diDrawLine(0,0,structure->currentWindow->width,structure->currentWindow->height, 0, 255, 255);
+    	diDrawLine(0,0,structure->currentWindow->config.width,structure->currentWindow->config.height, 0, 255, 255);
     	XFlush(structure->display->xDisplay);
     }
     
