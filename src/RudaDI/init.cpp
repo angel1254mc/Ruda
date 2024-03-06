@@ -12,6 +12,7 @@
 
 
 DI_Structure* structure = nullptr;
+DI_WindowConfig defaultWindowConfig = DI_WindowConfig();
 
 bool diInit() {
 	structure = new DI_Structure(); //global structure referenced everywhere
@@ -21,6 +22,7 @@ bool diInit() {
     print("setting root...");
     structure->root = RootWindow(structure->display->xDisplay, structure->screen);
     print("root set");
+    structure->currentConfig = defaultWindowConfig;
     
     // initialize variables such as
     // shouldClose
@@ -38,9 +40,7 @@ bool diInit() {
         throw std::runtime_error("Display, Screen, and/or RootWindow not allocated correctly");
         return false;
     }
-
     return true;
-    
 }
 
 DI_Window* diCreateWindow(const str title, unsigned int width, unsigned int height, DI_Monitor* monitor, DI_Window* parentWindow) {
@@ -48,7 +48,7 @@ DI_Window* diCreateWindow(const str title, unsigned int width, unsigned int heig
     int depth = DefaultDepth(structure->display, structure->screen);
 
     // Create Simple Window
-    XWindow xWindow = XCreateSimpleWindow(structure->display->xDisplay, structure->root, 0, 0, width, height, 0, BlackPixel(structure->display->xDisplay, structure->screen), BlackPixel(structure->display->xDisplay, structure->screen));
+    XWindow xWindow = XCreateSimpleWindow(structure->display->xDisplay, structure->root, structure->currentConfig.get_x_position(), structure->currentConfig.get_y_position(), width, height, 0, BlackPixel(structure->display->xDisplay, structure->screen), BlackPixel(structure->display->xDisplay, structure->screen));
 
     std::cout << "Created Window " << xWindow << std::endl;
     

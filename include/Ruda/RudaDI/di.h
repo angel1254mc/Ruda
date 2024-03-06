@@ -84,7 +84,7 @@
 
 
 extern DI_Structure* structure; //global structure referenced everywhere
-extern DI_WindowConfig* defaultWindowConfig = new DI_WindowConfig();
+extern DI_WindowConfig defaultWindowConfig;
 
 
 //TO DO:
@@ -138,7 +138,7 @@ void diDefaultWindowHints();
 #define HINT_UNCHANGED		2
 #define HINT_INVALID_VALUE	3
 #define HINT_INVALID_HINT 	4
-int diWindowHint (unsigned short hint, int value);
+int diWindowHint(unsigned short hint, int value, DI_WindowConfig config = structure->currentConfig) {return config.diWindowHint(hint, value);};
 
 /// @brief Sets specific window hint to value
 /// @param width width of window
@@ -147,7 +147,7 @@ int diWindowHint (unsigned short hint, int value);
 /// @param monitor Monitor on which to create window
 /// @param window OPTIONAL additional window to share resources with
 /// @returns DI_Window object corresponding to newly created window
-DI_Window* diCreateWindow(const str title, unsigned int width, unsigned int height, DI_Monitor* monitor = nullptr, DI_Window* parentWindow = nullptr);
+DI_Window* diCreateWindow(const str title, unsigned int width = structure->currentConfig.width, unsigned int height = structure->currentConfig.height, DI_Monitor* monitor = nullptr, DI_Window* parentWindow = nullptr);
 
 /// @brief Destroys window and associated resources
 /// @param window DI_Window object to destroy

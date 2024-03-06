@@ -42,8 +42,8 @@ void handleCursorEnterWindow(DI_Window* window, bool entered) {
         print("handleCursorEnterWindow: Window cannot be null!");
     if (entered != true && entered != false) 
         print("handleCursorEnterWindow: entered has to be true or false!");
-    if (window->callbacks.cursorEnter != nullptr)
-        return window->callbacks.cursorEnterCallback(window, entered)
+    // if (window->callbacks.cursorEnter != nullptr)
+    //     return window->callbacks.cursorEnterCallback(window, entered)
 }
 
 void handleCursorMovement(DI_Window* window, int x, int y) {
@@ -83,6 +83,7 @@ void diProcessEvent(XEvent* event) {
 
     switch(event->type) {
         case KeyPress:
+        {
             int keycode = event->xkey.keycode;
             bool pressed = true;
             int mods = translateMods(event->xkey.state);
@@ -94,8 +95,10 @@ void diProcessEvent(XEvent* event) {
 
             // Trigger the INTERNAL callback for key events
             handleKeyPressed(window, keycode, pressed, mods);
-            return;
+            break;
+        }
         case KeyRelease:
+        {
             int keycode = event->xkey.keycode;
             bool pressed = false;
             int mods = translateMods(event->xkey.state);
@@ -120,8 +123,10 @@ void diProcessEvent(XEvent* event) {
             }
             // Trigger the INTERNAL callback for key events
             handleKeyPressed(window, keycode, pressed, mods);
-            return;
+            break;
+        }
         case ButtonPress:
+        {
             int mods = translateMods(event->xbutton.state);
             // handle left, right, middle click (1, 2, 3 respectively)
             if (window->callbacks.mouseButtonCallback != nullptr 
@@ -136,14 +141,18 @@ void diProcessEvent(XEvent* event) {
                     window->callbacks.scrollCallback(window, 0, -1.0);
                 }
             }
-            return;
+            break;
+        }
         case ButtonRelease:
+        {
             int mods = translateMods(event->xbutton.state);
             // For left click, middle click, and right click
             if (window->callbacks.mouseButtonCallback != nullptr && (event->xbutton.button >= Button1 && event->xbutton.button <= Button3))
                 window->callbacks.mouseButtonCallback(window, event->xbutton.button, false, mods);
-            return;
+            break;
+        }
         case EnterNotify:
+        {
             // This is for when the mouse pointer enters the current window
             // https://tronche.com/gui/x/xlib/events/window-entry-exit/
             // Window entry also constites a mouse motion event! (XCrossingEvent)
@@ -152,11 +161,15 @@ void diProcessEvent(XEvent* event) {
             
             handleCursorEnterWindow(window, true);
             handleCursorMovement(window, x, y);
-            return; 
+            break;
+        }
         case LeaveNotify:
+        {
             handleCursorEnterWindow(window, false);
-            return;
+            break;
+        }
         case MotionNotify:
+        {
             int x = event->xmotion.x;
             int y = event->xmotion.y;
            
@@ -164,12 +177,18 @@ void diProcessEvent(XEvent* event) {
                 window->callbacks.cursorPosCallback(window, x, y);
             }
             break;
+        }
         case ConfigureNotify:
+        {
             // Handle resizes and stuff here.
             print("Testing this real quick");
             break;
+        }
         default:
+        {
             print("Do Nothing because event type was not recognized");
+            break;
+        }
     }
-
+    return;
 }

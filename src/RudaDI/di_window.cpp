@@ -29,244 +29,246 @@ DI_Window::~DI_Window() {
 	XFreeGC(structure->display->xDisplay, this->context->xContext);
 }
 
-int diWindowHint(unsigned int hint, int value) {
+
+int DI_WindowConfig::diWindowHint(unsigned int hint, int value) {
 	switch (hint)
 	{
 		case DI_RESIZABLE:
 			if (value == RUDA_FALSE) {
-				if (structure->currentConfig.resizable) {
-					structure->currentConfig.resizable = false;
+				if (resizable) {
+					resizable = false;
 					return HINT_CHANGED;
 				}
 			} else if (value == RUDA_TRUE) {
-				if (!structure->currentConfig.resizable) {
-					structure->currentConfig.resizable = true;
+				if (!resizable) {
+					resizable = true;
 					return HINT_CHANGED;
 				}
 			} else return HINT_INVALID_VALUE;
 			return HINT_UNCHANGED;
 		case DI_MAINTAIN_ASPECT_RATIO:
 			if (value == RUDA_FALSE) {
-				if (structure->currentConfig.maintain_aspect_ratio) {
-					structure->currentConfig.maintain_aspect_ratio = false;
+				if (maintain_aspect_ratio) {
+					maintain_aspect_ratio = false;
 					return HINT_CHANGED;
 				}
 			} else if (value == RUDA_TRUE) {
-				if (!structure->currentConfig.maintain_aspect_ratio) {
-					structure->currentConfig.maintain_aspect_ratio = true;
+				if (!maintain_aspect_ratio) {
+					maintain_aspect_ratio = true;
 					return HINT_CHANGED;
 				}
 			} else return HINT_INVALID_VALUE;
 			return HINT_UNCHANGED;
 		case DI_FOCUSED:
 			if (value == RUDA_FALSE) {
-				if (structure->currentConfig.focused) {
-					structure->currentConfig.focused = false;
+				if (focused) {
+					focused = false;
 					return HINT_CHANGED;
 				}
 			} else if (value == RUDA_TRUE) {
-				if (!structure->currentConfig.focused) {
-					structure->currentConfig.focused = true;
+				if (!focused) {
+					focused = true;
 					return HINT_CHANGED;
 				}
 			} else return HINT_INVALID_VALUE;
 			return HINT_UNCHANGED;
 		case DI_MINIMIZED:
 			if (value == RUDA_FALSE) {
-				if (structure->currentConfig.minimized) {
-					structure->currentConfig.minimized = false;
+				if (minimized) {
+					minimized = false;
 					return HINT_CHANGED;
 				}
 			} else if (value == RUDA_TRUE) {
-				if (!structure->currentConfig.minimized) {
-					structure->currentConfig.minimized = true;
+				if (!minimized) {
+					minimized = true;
 					return HINT_CHANGED;
 				}
 			} else return HINT_INVALID_VALUE;
 			return HINT_UNCHANGED;
 		case DI_VISIBLE:
 			if (value == RUDA_FALSE) {
-				if (structure->currentConfig.visible) {
-					structure->currentConfig.visible = false;
+				if (visible) {
+					visible = false;
 					return HINT_CHANGED;
 				}
 			} else if (value == RUDA_TRUE) {
-				if (!structure->currentConfig.visible) {
-					structure->currentConfig.visible = true;
+				if (!visible) {
+					visible = true;
 					return HINT_CHANGED;
 				}
 			} else return HINT_INVALID_VALUE;
 			return HINT_UNCHANGED;
 		case DI_DECORATED:
 			if (value == RUDA_FALSE) {
-				if (structure->currentConfig.decorated) {
-					structure->currentConfig.decorated = false;
+				if (decorated) {
+					decorated = false;
 					return HINT_CHANGED;
 				}
 			} else if (value == RUDA_TRUE) {
-				if (!structure->currentConfig.decorated) {
-					structure->currentConfig.decorated = true;
+				if (!decorated) {
+					decorated = true;
 					return HINT_CHANGED;
 				}
 			} else return HINT_INVALID_VALUE;
 			return HINT_UNCHANGED;
 		case DI_AUTO_MINIMIZE:
 			if (value == RUDA_FALSE) {
-				if (structure->currentConfig.auto_minimize) {
-					structure->currentConfig.auto_minimize = false;
+				if (auto_minimize) {
+					auto_minimize = false;
 					return HINT_CHANGED;
 				}
 			} else if (value == RUDA_TRUE) {
-				if (!structure->currentConfig.auto_minimize) {
-					structure->currentConfig.auto_minimize = true;
+				if (!auto_minimize) {
+					auto_minimize = true;
 					return HINT_CHANGED;
 				}
 			} else return HINT_INVALID_VALUE;
 			return HINT_UNCHANGED;
 		case DI_FLOATING:
 			if (value == RUDA_FALSE) {
-				if (structure->currentConfig.floating) {
-					structure->currentConfig.floating = false;
+				if (floating) {
+					floating = false;
 					return HINT_CHANGED;
 				}
 			} else if (value == RUDA_TRUE) {
-				if (!structure->currentConfig.floating) {
-					structure->currentConfig.floating = true;
+				if (!floating) {
+					floating = true;
 					return HINT_CHANGED;
 				}
 			} else return HINT_INVALID_VALUE;
 			return HINT_UNCHANGED;
 		case DI_MAXIMIZED:
 			if (value == RUDA_FALSE) {
-				if (structure->currentConfig.maximized) {
-					structure->currentConfig.maximized = false;
+				if (maximized) {
+					maximized = false;
 					return HINT_CHANGED;
 				}
 			} else if (value == RUDA_TRUE) {
-				if (!structure->currentConfig.maximized) {
-					structure->currentConfig.maximized = true;
+				if (!maximized) {
+					maximized = true;
 					return HINT_CHANGED;
 				}
 			} else return HINT_INVALID_VALUE;
 			return HINT_UNCHANGED;
 		case DI_CENTER_CURSOR:
 			if (value == RUDA_FALSE) {
-				if (structure->currentConfig.center_cursor) {
-					structure->currentConfig.center_cursor = false;
+				if (center_cursor) {
+					center_cursor = false;
 					return HINT_CHANGED;
 				}
 			} else if (value == RUDA_TRUE) {
-				if (!structure->currentConfig.center_cursor) {
-					structure->currentConfig.center_cursor = true;
+				if (!center_cursor) {
+					center_cursor = true;
 					return HINT_CHANGED;
 				}
 			} else return HINT_INVALID_VALUE;
 			return HINT_UNCHANGED;
 		case DI_TRANSPARENT_FRAMEBUFFER:
 			if (value == RUDA_FALSE) {
-				if (structure->currentConfig.transparent_framebuffer) {
-					structure->currentConfig.transparent_framebuffer = false;
+				if (transparent_framebuffer) {
+					transparent_framebuffer = false;
 					return HINT_CHANGED;
 				}
 			} else if (value == RUDA_TRUE) {
-				if (!structure->currentConfig.transparent_framebuffer) {
-					structure->currentConfig.transparent_framebuffer = true;
+				if (!transparent_framebuffer) {
+					transparent_framebuffer = true;
 					return HINT_CHANGED;
 				}
 			} else return HINT_INVALID_VALUE;
 			return HINT_UNCHANGED;
 		case DI_HOVERED:
 			if (value == RUDA_FALSE) {
-				if (structure->currentConfig.hovered) {
-					structure->currentConfig.hovered = false;
+				if (hovered) {
+					hovered = false;
 					return HINT_CHANGED;
 				}
 			} else if (value == RUDA_TRUE) {
-				if (!structure->currentConfig.hovered) {
-					structure->currentConfig.hovered = true;
+				if (!hovered) {
+					hovered = true;
 					return HINT_CHANGED;
 				}
 			} else return HINT_INVALID_VALUE;
 			return HINT_UNCHANGED;
 		case DI_FOCUS_ON_SHOW:
 			if (value == RUDA_FALSE) {
-				if (structure->currentConfig.focus_on_show) {
-					structure->currentConfig.focus_on_show = false;
+				if (focus_on_show) {
+					focus_on_show = false;
 					return HINT_CHANGED;
 				}
 			} else if (value == RUDA_TRUE) {
-				if (!structure->currentConfig.focus_on_show) {
-					structure->currentConfig.focus_on_show = true;
+				if (!focus_on_show) {
+					focus_on_show = true;
 					return HINT_CHANGED;
 				}
 			} else return HINT_INVALID_VALUE;
 			return HINT_UNCHANGED;
 		case DI_MOUSE_PASSTHROUGH:
 			if (value == RUDA_FALSE) {
-				if (structure->currentConfig.mouse_passthrough) {
-					structure->currentConfig.mouse_passthrough = false;
+				if (mouse_passthrough) {
+					mouse_passthrough = false;
 					return HINT_CHANGED;
 				}
 			} else if (value == RUDA_TRUE) {
-				if (!structure->currentConfig.mouse_passthrough) {
-					structure->currentConfig.mouse_passthrough = true;
+				if (!mouse_passthrough) {
+					mouse_passthrough = true;
 					return HINT_CHANGED;
 				}
 			} else return HINT_INVALID_VALUE;
 			return HINT_UNCHANGED;
 		case DI_SCALE_TO_MONITOR:
 			if (value == RUDA_FALSE) {
-				if (structure->currentConfig.scale_to_monitor) {
-					structure->currentConfig.scale_to_monitor = false;
+				if (scale_to_monitor) {
+					scale_to_monitor = false;
 					return HINT_CHANGED;
 				}
 			} else if (value == RUDA_TRUE) {
-				if (!structure->currentConfig.scale_to_monitor) {
-					structure->currentConfig.scale_to_monitor = true;
+				if (!scale_to_monitor) {
+					scale_to_monitor = true;
 					return HINT_CHANGED;
 				}
 			} else return HINT_INVALID_VALUE;
 			return HINT_UNCHANGED;
 		case DI_DOUBLE_FRAMEBUFFER:
 			if (value == RUDA_FALSE) {
-				if (structure->currentConfig.double_framebuffer) {
-					structure->currentConfig.double_framebuffer = false;
+				if (double_framebuffer) {
+					double_framebuffer = false;
 					return HINT_CHANGED;
 				}
 			} else if (value == RUDA_TRUE) {
-				if (!structure->currentConfig.double_framebuffer) {
-					structure->currentConfig.double_framebuffer = true;
+				if (!double_framebuffer) {
+					double_framebuffer = true;
 					return HINT_CHANGED;
 				}
 			} else return HINT_INVALID_VALUE;
 			return HINT_UNCHANGED;
 		case DI_SCALE_FRAMEBUFFER:
 			if (value == RUDA_FALSE) {
-				if (structure->currentConfig.scale_framebuffer) {
-					structure->currentConfig.scale_framebuffer = false;
+				if (scale_framebuffer) {
+					scale_framebuffer = false;
 					return HINT_CHANGED;
 				}
 			} else if (value == RUDA_TRUE) {
-				if (!structure->currentConfig.scale_framebuffer) {
-					structure->currentConfig.scale_framebuffer = true;
+				if (!scale_framebuffer) {
+					scale_framebuffer = true;
 					return HINT_CHANGED;
 				}
 			} else return HINT_INVALID_VALUE;
 			return HINT_UNCHANGED;
 		case DI_POSITION_X:
-			if (value != structure->currentConfig.x_position) {
-				structure->currentConfig.x_position = value;
+			if (value != x_position) {
+				x_position = value;
 				return HINT_CHANGED;
 			} else return HINT_UNCHANGED;
 		case DI_POSITION_Y:
-			if (value != structure->currentConfig.y_position) {
-				structure->currentConfig.y_position = value;
+			if (value != y_position) {
+				y_position = value;
+				return HINT_CHANGED;
+			} else return HINT_UNCHANGED;
+		case DI_REFRESH_RATE:
+			if (value != refresh_rate) {
+				refresh_rate = value;
 				return HINT_CHANGED;
 			} else return HINT_UNCHANGED;
 	}
 	return HINT_INVALID_HINT;
-
 }
-
-
-
