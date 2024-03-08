@@ -1,4 +1,5 @@
 #include "RudaDI/di.h"
+#include "RudaDI/di_structs.h"
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 #include <X11/Xresource.h>
@@ -14,4 +15,8 @@ void diDrawLine (unsigned int x_origin, unsigned int y_origin, unsigned int x_de
 
 void diDrawLine (unsigned int x_origin, unsigned int y_origin, unsigned int x_dest, unsigned int y_dest, unsigned int r, unsigned int g, unsigned int b) {
     diDrawLine(x_origin, y_origin, x_dest, y_dest, Color(r, g, b));
+}
+
+void diFlush() {
+	XFlush(structure->display->xDisplay);
 }

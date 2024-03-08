@@ -1,22 +1,22 @@
 #include "RudaDI/di.h"
+#include "RudaDI/di_structs.h"
+#include "Util/util.h"
+
 
 DI_Window::DI_Window (Window xWindow, str title, unsigned int width, unsigned int height, DI_Window* parentWindow) {
 	this->xWindow = xWindow;
-	this->config = structure->currentConfig;
+	// Copy currentConfig struct to DI_Window config
+	this->config = *(structure->currentConfig);
 	this->config.width = width;
 	this->config.height = height;
 	this->config.title = title;
 	parent = parentWindow;
-	print("creating context");
 	// I guess we caan handle actually generating the graphics context and the pixmap here but this can get switched around as needed
 	this->context = new Ruda_Context(XCreateGC(structure->display->xDisplay, this->xWindow, 0, NULL));
 	// set the foreground to white for now.
 
-	print("created context");
 
 	XSetForeground(structure->display->xDisplay, this->context->xContext, WhitePixel(structure->display->xDisplay, structure->screen));
-
-	print("set foreground");
 	// Please please please let me know when
 	// Keys are pressed and released
 	// Buttons are pressed and released
@@ -24,6 +24,63 @@ DI_Window::DI_Window (Window xWindow, str title, unsigned int width, unsigned in
 	// window resizing and such (and some more stuff like Mapping, unmapping, etc.)
 	XSelectInput(structure->display->xDisplay, this->xWindow, KeyPressMask | KeyReleaseMask | ButtonPressMask | ButtonReleaseMask | PointerMotionMask | StructureNotifyMask);
 }
+
+void diSetWindowTitle(DI_Window* window, std::string title) {
+	Xutf8SetWMProperties(
+		structure->display->xDisplay,
+		window->xWindow,
+		title.c_str(), title.c_str(),
+		NULL, 0, NULL, NULL, NULL
+	);
+
+	char* c_string = &title[0];
+	XTextProperty title_text;
+	XStringListToTextProperty(&(c_string), 1, &title_text);
+
+	window->config.title = title;
+	XSetWMName(structure->display->xDisplay, window->xWindow, &title_text);
+
+	XFlush(structure->display->xDisplay);
+	return;
+}
+
+std::string diGetWindowTitle(DI_Window* window) {
+	return window->config.title;
+}
+
+
+//void diSetWindowIcon(DI_Window* window,  std::string imagePath) {
+
+//}
+
+int* diGetWindowPos(DI_Window* window) { // returns {x, y}
+	int* position = new int[2];
+	position[0] = (window->config).get_x_position();
+	position[1] = (window->config).get_y_position();
+	return position;
+}
+
+void diSetWindowPos(DI_Window* window, int x, int y) {
+	(window->config).set_x_position(x);
+	(window->config).set_y_position(y);
+}
+
+int* diGetWindowSize(DI_Window* window) { // returns {width, height}
+	int* dimensions = new int[2];
+	dimensions[0] = (window->config).width;
+	dimensions[1] = (window->config).height;
+	return dimensions;
+}
+
+void diSetWindowSize(DI_Window* window, int width, int height) {
+	(window->config).width = width;
+	(window->config).height = height;
+
+	XResizeWindow(structure->display->xDisplay, window->xWindow, width, height);
+	XFlush(structure->display->xDisplay);
+}
+
+
 
 DI_Window::~DI_Window() {
 	XFreeGC(structure->display->xDisplay, this->context->xContext);

@@ -11,12 +11,14 @@
 #include "../Util/color.h"
 #include "../Ruda/structs.h"
 #include "../Util/util.h"
+#include "./di.h"
 
 struct DI_Structure;
 struct DI_Window;
 struct DI_Monitor;
 struct DI_Cursor;
 struct DI_Display;
+struct DI_WindowConfig;
 
 extern DI_Structure* structure; //global structure referenced everywhere
 
@@ -51,6 +53,10 @@ struct DI_WindowConfig {
 	int diWindowHint(unsigned int hint, int value);
 	int  get_x_position() { return x_position; };
 	int  get_y_position() { return y_position; };
+
+	void set_x_position(int x) { this->x_position = x; };
+	void set_y_position(int y) { this->y_position = y; };
+
 	unsigned int get_refresh_rate() { return refresh_rate; };
 	bool get_maintain_aspect_ratio() { return maintain_aspect_ratio; };
 	bool get_focused() { return focused; };
@@ -83,7 +89,7 @@ struct DI_Structure {
 	
 	XWindow root;
 
-	DI_WindowConfig currentConfig;
+	DI_WindowConfig* currentConfig;
 
 	int screen = -1;
 	
@@ -106,21 +112,22 @@ struct DI_Window {
 	DI_Window* parent;
 
 	struct {
-		void (*windowResizeCallback)(int, int) = nullptr;
-		void (*windowClosCallback)() = nullptr;
-		void (*windowFocusCallback)() = nullptr;
-		void (*windowIconifyCallback)(DI_Window*, int) = nullptr;
-		void (*windowMaximizeCallback)(DI_Window*, int) = nullptr;
-		void (*windowFramebufferSizeCallback)(DI_Window*, float, float) = nullptr;
-		void (*windowContentScaleCallback)(DI_Window*, float, float) = nullptr;
-		void (*keyCallback)(DI_Window*, int, int, int) = nullptr;
-		void (*mouseButtonCallback)(DI_Window* window, int button, bool pressed, int mods);
-		void (*cursorPosCallback)(DI_Window* window, double xpos, double ypos);
-		void (*scrollCallback)(DI_Window* window, double xoffset, double yoffset);
-		void (*cursorEnterCallback)(DI_Window* window, bool entered);
+		windowResizeCallback resize = NULL;
+		windowCloseCallback close = NULL;
+		windowFocusCallback focus = NULL;
+		windowIconifyCallback iconify = NULL;
+		windowMaximizeCallback maximize = NULL;
+		windowFramebufferSizeCallback fb_resize = NULL;
+		windowPosCallback window_pos_change = NULL;
+		windowContentScaleCallback content_scale_resize = NULL;
+		keyCallback keypress = NULL;
+		mouseButtonCallback mouse_click = NULL;
+		cursorPosCallback cursor_pos_change = NULL;
+		scrollCallback scroll = NULL;
+		cursorEnterCallback cursor_enter = NULL;
 	} callbacks;
 
-	DI_Window(XWindow xWindow, str title = structure->currentConfig.title, unsigned int width = structure->currentConfig.width, unsigned int height = structure->currentConfig.height, DI_Window* parentWindow = nullptr);
+	DI_Window(XWindow xWindow, str title = structure->currentConfig->title, unsigned int width = structure->currentConfig->width, unsigned int height = structure->currentConfig->height, DI_Window* parentWindow = NULL);
 	~DI_Window();
 };
 

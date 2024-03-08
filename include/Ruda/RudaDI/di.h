@@ -10,7 +10,15 @@
 #include "../Util/color.h"
 #include "../Util/util.h"
 #include "../Ruda/ruda.h"
-#include "./di_structs.h"
+
+
+typedef struct DI_Window DI_Window;
+typedef struct DI_Cursor DI_Cursor;
+typedef struct DI_Monitor DI_Monitor;
+typedef struct DI_Display DI_Display;
+typedef struct DI_WindowConfig DI_WindowConfig;
+typedef struct DI_Structure DI_Structure;
+
 
 // ------------------------------- MACROS ------------------------------- //
 
@@ -84,32 +92,31 @@
 
 
 extern DI_Structure* structure; //global structure referenced everywhere
+DI_Structure* diGetStructure();
 extern DI_WindowConfig defaultWindowConfig;
 
 
+
+// ------------------------------- CALLBACKS.CPP ------------------------------- //
 //TO DO:
 //void diInitHint(); Sets hints for initialization
 //bool diTerminate();
 	
 /* Callback functions to be implemented at a later date */
-void (*windowResizeCallback)(int, int) = nullptr;
-void (*windowClosCallback)() = nullptr;
-void (*windowFocusCallback)() = nullptr;
-void (*windowIconifyCallback)(DI_Window*, int) = nullptr;
-void (*windowMaximizeCallback)(DI_Window*, int) = nullptr;
-void (*windowFramebufferSizeCallback)(DI_Window*, float, float) = nullptr;
-void (*windowContentScaleCallback)(DI_Window*, float, float) = nullptr;
-
-
-void (*keyCallback)(DI_Window*, int, int, int) = nullptr;
-
-void (*mouseButtonCallback)(DI_Window* window, int button, bool pressed, int mods);
-
-void (*cursorPosCallback)(DI_Window* window, double xpos, double ypos);
-
-void (*scrollCallback)(DI_Window* window, double xoffset, double yoffset);
-
-void (*cursorEnterCallback)(DI_Window* window, bool entered);
+typedef void (*windowResizeCallback)(DI_Window*, int, int);
+typedef void (*windowCloseCallback)(DI_Window*);
+typedef void (*windowFocusCallback)(DI_Window*);
+typedef void (*windowIconifyCallback)(DI_Window*, int);
+typedef void (*windowMaximizeCallback)(DI_Window*, int);
+typedef void (*windowFramebufferSizeCallback)(DI_Window*, float, float);
+typedef void (*windowContentScaleCallback)(DI_Window*, float, float);
+typedef void (*windowEnterCallback)(DI_Window*, bool);
+typedef void (*windowPosCallback)(DI_Window*, int, int);
+typedef void (*keyCallback)(DI_Window*, int, bool, int);
+typedef void (*mouseButtonCallback)(DI_Window* window, int button, bool pressed, int mods);
+typedef void (*cursorPosCallback)(DI_Window* window, double xpos, double ypos);
+typedef void (*scrollCallback)(DI_Window* window, double xoffset, double yoffset);
+typedef void (*cursorEnterCallback)(DI_Window* window, bool entered);
 /**
  * Calls "terminate" if necessary, initializes
  * default DI_ configuration and creates all internal
@@ -138,7 +145,7 @@ void diDefaultWindowHints();
 #define HINT_UNCHANGED		2
 #define HINT_INVALID_VALUE	3
 #define HINT_INVALID_HINT 	4
-int diWindowHint(unsigned short hint, int value, DI_WindowConfig config = structure->currentConfig) {return config.diWindowHint(hint, value);};
+int diWindowHint(unsigned short hint, int value);
 
 /// @brief Sets specific window hint to value
 /// @param width width of window
@@ -147,8 +154,8 @@ int diWindowHint(unsigned short hint, int value, DI_WindowConfig config = struct
 /// @param monitor Monitor on which to create window
 /// @param window OPTIONAL additional window to share resources with
 /// @returns DI_Window object corresponding to newly created window
-DI_Window* diCreateWindow(const str title, unsigned int width = structure->currentConfig.width, unsigned int height = structure->currentConfig.height, DI_Monitor* monitor = nullptr, DI_Window* parentWindow = nullptr);
-
+DI_Window* diCreateWindow(const str title, unsigned int width, unsigned int height, DI_Monitor* monitor, DI_Window* parentWindow);
+DI_Window* diCreateWindow(const str title);
 /// @brief Destroys window and associated resources
 /// @param window DI_Window object to destroy
 /// @param window DI_Window object to destroy
@@ -182,7 +189,7 @@ void diSetWindowPos(DI_Window* window, int x, int y);
 
 int* diGetWindowSize(DI_Window* window);
 
-void diSetWindowSize(DI_Window* window, int x, int y);
+void diSetWindowSize(DI_Window* window, int width, int height);
 
 // https://github.com/glfw/glfw/blob/8f2f766f0d2ed476c03a2ae02e48ac41a9602b03/include/GLFW/glfw3.h#L3700
 
@@ -231,21 +238,22 @@ void diSetWindowAttrib(DI_Window* window, int attribute, int value);
 /// @brief Sets function as callback on window resizes
 /// @param window window which we are setting callback for
 /// @param callbackFunc the callback func, which is given the width and height of content window post-resize
-void diSetWindowSizeCallback(DI_Window* window, void (*callbackFunc)(int, int));
+windowResizeCallback diSetWindowSizeCallback(DI_Window* window, windowResizeCallback callbackFunc);
 
-void diSetWindowCloseCallback(DI_Window* window, void (*callbackFunc)());
+windowCloseCallback diSetWindowCloseCallback(DI_Window* window, windowCloseCallback callbackFunc);
 
-void diSetWindowFocusCallback(DI_Window* window, void(*callbackFunc)());
+windowFocusCallback diSetWindowFocusCallback(DI_Window* window, windowFocusCallback callbackFunc);
 
-void diSetWindowIconifyCallback(DI_Window* window, void(*callbackFunc)(DI_Window*, int));
+windowIconifyCallback diSetWindowIconifyCallback(DI_Window* window, windowIconifyCallback callbackFunc);
 
-void diSetWindowMaximizeCallback(DI_Window* window, void(*callbackFunc)(DI_Window*, int));
+windowMaximizeCallback diSetWindowMaximizeCallback(DI_Window* window, windowMaximizeCallback callbackFunc);
 
 // Pretty sure this is relevant for resizing textures/images attached to a framebuffer since it doesn't get done automatically
-void diSetFramebufferSizeCallback(DI_Window* window, void(*callbackFunc)(DI_Window*, float, float));
+windowFramebufferSizeCallback diSetFramebufferSizeCallback(DI_Window* window, windowFramebufferSizeCallback callbackFunc);
 
-void diSetWindowContentScaleCallback(DI_Window* window, void(*callbackFunc)(DI_Window*, float, float));
+windowContentScaleCallback diSetWindowContentScaleCallback(DI_Window* window, windowContentScaleCallback callbackFunc);
 
+windowEnterCallback diSetCursorEnterCallback(DI_Window* window, windowEnterCallback callbackFunc);
 
 // ------------------------------- EVENT.CPP ------------------------------- // 
 
@@ -295,16 +303,13 @@ void diSetCursor(DI_Window* window, DI_Cursor* cursor);
 /// @callback_Signature
 /// func(DI_Window window, int key, int action, int mods????)
 
-void diSetKeyCallback(DI_Window* window,  void(*callbackFunc)(DI_Window*, int, int, int));
+keyCallback diSetKeyCallback(DI_Window* window,  keyCallback callbackFunc);
 
-void diSetMouseButtonCallback(DI_Window* window, void(*callbackFunc)(DI_Window* window, int button, bool pressed, int mods));
+mouseButtonCallback diSetMouseButtonCallback(DI_Window* window, mouseButtonCallback callbackFunc);
 
-void diSetCursorPosCallback(DI_Window* window, void(*callbackFunc)(DI_Window* window, double xpos, double ypos));
+cursorPosCallback diSetCursorPosCallback(DI_Window* window, cursorPosCallback callbackFunc);
 
-void diSetCursorEnterCallback(DI_Window* window, void(*callbackFunc)(DI_Window* window, bool entered));
-
-// see GLFWscrollfun  callback for more details on the callback params
-void diSetScrollCallback(DI_Window* window, void(*callbackFunc)(DI_Window* window, double xoffset, double yoffset));
+scrollCallback diSetScrollCallback(DI_Window* window, scrollCallback callbackFunc);
 
 
 
@@ -327,6 +332,7 @@ void diDrawLine (unsigned int x_origin, unsigned int y_origin, unsigned int x_de
 
 void diDrawLine (unsigned int x_origin, unsigned int y_origin, unsigned int x_dest, unsigned int y_dest, unsigned int r, unsigned int g, unsigned int b);
 
+void diFlush();
 
 // ------------------------------- KEYCODES ------------------------------- //
 
@@ -467,7 +473,6 @@ void diDrawLine (unsigned int x_origin, unsigned int y_origin, unsigned int x_de
 #define DI_KP_DECIMAL 129
 #define DI_HANGUL 130
 #define DI_HANGUL_HANJA 131
-#define DI_ 132
 #define DI_SUPER_L 133
 #define DI_SUPER_R 134
 #define DI_MENU 135
@@ -484,12 +489,10 @@ void diDrawLine (unsigned int x_origin, unsigned int y_origin, unsigned int x_de
 #define DI_HELP 146
 #define DI_XF86MENUKB 147
 #define DI_XF86CALCULATOR 148
-#define DI_ 149
 #define DI_XF86SLEEP 150
 #define DI_XF86WAKEUP 151
 #define DI_XF86EXPLORER 152
 #define DI_XF86SEND 153
-#define DI_ 154
 #define DI_XF86XFER 155
 #define DI_XF86LAUNCH1 156
 #define DI_XF86LAUNCH2 157
@@ -503,7 +506,6 @@ void diDrawLine (unsigned int x_origin, unsigned int y_origin, unsigned int x_de
 #define DI_XF86MYCOMPUTER 165
 #define DI_XF86BACK 166
 #define DI_XF86FORWARD 167
-#define DI_ 168
 #define DI_XF86EJECT 169
 #define DI_XF86EJECT 170
 #define DI_XF86AUDIONEXT 171
@@ -513,13 +515,10 @@ void diDrawLine (unsigned int x_origin, unsigned int y_origin, unsigned int x_de
 #define DI_XF86AUDIORECORD 175
 #define DI_XF86AUDIOREWIND 176
 #define DI_XF86PHONE 177
-#define DI_ 178
 #define DI_XF86TOOLS 179
 #define DI_XF86HOMEPAGE 180
 #define DI_XF86RELOAD 181
 #define DI_XF86CLOSE 182
-#define DI_ 183
-#define DI_ 184
 #define DI_XF86SCROLLUP 185
 #define DI_XF86SCROLLDOWN 186
 #define DI_PARENLEFT 187
@@ -532,12 +531,10 @@ void diDrawLine (unsigned int x_origin, unsigned int y_origin, unsigned int x_de
 #define DI_XF86LAUNCH7 194
 #define DI_XF86LAUNCH8 195
 #define DI_XF86LAUNCH9 196
-#define DI_ 197
 #define DI_XF86AUDIOMICMUTE 198
 #define DI_XF86TOUCHPADTOGGLE 199
 #define DI_XF86TOUCHPADON 200
 #define DI_XF86TOUCHPADOFF 201
-#define DI_ 202
 #define DI_MODE_SWITCH 203
 #define DI_NOSYMBOL 204
 #define DI_NOSYMBOL 205
@@ -552,12 +549,9 @@ void diDrawLine (unsigned int x_origin, unsigned int y_origin, unsigned int x_de
 #define DI_XF86CLOSE 214
 #define DI_XF86AUDIOPLAY 215
 #define DI_XF86AUDIOFORWARD 216
-#define DI_ 217
 #define DI_PRINT 218
-#define DI_ 219
 #define DI_XF86WEBCAM 220
 #define DI_XF86AUDIOPRESET 221
-#define DI_ 222
 #define DI_XF86MAIL 223
 #define DI_XF86MESSENGER 224
 #define DI_XF86SEARCH 225
@@ -565,7 +559,6 @@ void diDrawLine (unsigned int x_origin, unsigned int y_origin, unsigned int x_de
 #define DI_XF86FINANCE 227
 #define DI_XF86GAME 228
 #define DI_XF86SHOP 229
-#define DI_ 230
 #define DI_CANCEL 231
 #define DI_XF86MONBRIGHTNESSDOWN 232
 #define DI_XF86MONBRIGHTNESSUP 233
@@ -583,7 +576,6 @@ void diDrawLine (unsigned int x_origin, unsigned int y_origin, unsigned int x_de
 #define DI_XF86BLUETOOTH 245
 #define DI_XF86WLAN 246
 #define DI_XF86UWB 247
-#define DI_ 248
 #define DI_XF86NEXT_VMODE 249
 #define DI_XF86PREV_VMODE 250
 #define DI_XF86MONBRIGHTNESSCYCLE 251

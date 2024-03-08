@@ -1,5 +1,5 @@
 #include "RudaDI/di.h"
-
+#include "RudaDI/di_structs.h"
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 #include <X11/Xresource.h>
@@ -16,13 +16,11 @@ DI_WindowConfig defaultWindowConfig = DI_WindowConfig();
 
 bool diInit() {
 	structure = new DI_Structure(); //global structure referenced everywhere
-    structure->display = new DI_Display(XOpenDisplay(NIL));
+    structure->display = new DI_Display(XOpenDisplay(NULL));
     structure->screen = DefaultScreen(structure->display);
     structure->xContext = XUniqueContext();
-    print("setting root...");
     structure->root = RootWindow(structure->display->xDisplay, structure->screen);
-    print("root set");
-    structure->currentConfig = defaultWindowConfig;
+    structure->currentConfig = &defaultWindowConfig;
     
     // initialize variables such as
     // shouldClose
@@ -41,24 +39,36 @@ bool diInit() {
         return false;
     }
     return true;
+};
+
+DI_Structure* diGetStructure() {
+    return structure;
 }
+
+int diWindowHint(unsigned short hint, int value) {
+    return structure->currentConfig->diWindowHint(hint, value);
+};
+
+DI_Window* diCreateWindow(const str title) {
+    return diCreateWindow(title, structure->currentConfig->width, structure->currentConfig->height, nullptr, nullptr);
+};
 
 DI_Window* diCreateWindow(const str title, unsigned int width, unsigned int height, DI_Monitor* monitor, DI_Window* parentWindow) {
     XVisual* visual = DefaultVisual(structure->display, structure->screen);
     int depth = DefaultDepth(structure->display, structure->screen);
 
     // Create Simple Window
-    XWindow xWindow = XCreateSimpleWindow(structure->display->xDisplay, structure->root, structure->currentConfig.get_x_position(), structure->currentConfig.get_y_position(), width, height, 0, BlackPixel(structure->display->xDisplay, structure->screen), BlackPixel(structure->display->xDisplay, structure->screen));
-
-    std::cout << "Created Window " << xWindow << std::endl;
+    XWindow xWindow = XCreateSimpleWindow(structure->display->xDisplay, structure->root, structure->currentConfig->get_x_position(), structure->currentConfig->get_y_position(), width, height, 0, BlackPixel(structure->display->xDisplay, structure->screen), BlackPixel(structure->display->xDisplay, structure->screen));
     
     // Map Window to make it viewable
+
     
+    XSelectInput(structure->display->xDisplay, xWindow, KeyPressMask | KeyReleaseMask | ButtonPressMask | ButtonReleaseMask | PointerMotionMask | StructureNotifyMask);
+
     XMapWindow(structure->display->xDisplay, xWindow);
     XStoreName(structure->display->xDisplay, xWindow, title.c_str());
     XFlush(structure->display->xDisplay);
 
-    print("Made it to post-flush");
     
     // Do everything else in window constructor
     // such as:
@@ -71,12 +81,13 @@ DI_Window* diCreateWindow(const str title, unsigned int width, unsigned int heig
 	// For instance, an XEvent will provide the xWindow where the event occured, but not the DI_Window
 	// By saving a pointer to our DI_Window alongside the xWindow, we can just call XFindContext(xWindow) to return a pointer
 	// to DI_Window
-	XSaveContext(structure->display->xDisplay,
+	if (XSaveContext(structure->display->xDisplay,
 				xWindow,
 				structure->xContext,
-				(XPointer)&structure->currentWindow);
+				(XPointer)structure->currentWindow) != 0) {
+                    std::cout << "Error saving context" << std::endl;
+                } 
     
-    print("set currentWindow");
     structure->windows.push_back(structure->currentWindow);
     return structure->currentWindow;
 }

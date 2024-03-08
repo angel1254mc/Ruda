@@ -1,4 +1,5 @@
 #include "RudaDI/di.h"
+#include "RudaDI/di_structs.h"
 
 DI_Structure::~DI_Structure() {
 
