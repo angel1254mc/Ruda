@@ -82,6 +82,13 @@ void handleWindowPositionChange(DI_Window* window, int x_pos, int y_pos) {
         window->callbacks.window_pos_change(window, x_pos, y_pos);
 }
 
+void handleCloseWindowRequest(DI_Window* window) {
+    if (window  == NULL)
+        print("handleCloseWindowRequest: Window cannot be NULL!");
+    window->shouldClose = true;
+    if (window->callbacks.close != NULL)
+        window->callbacks.close(window);
+}
 
 void processEvent(XEvent* event) {
     // handles the if/else structure to decide what callback to invoke
@@ -128,9 +135,9 @@ void processEvent(XEvent* event) {
                 // Check the next event, see if it's a keypress event on the same window
                 XEvent next;
                 XPeekEvent(structure->display->xDisplay, &next);
-                if (next.type == KeyPress && next.xkey.window == event->xkey.window && next.xkey.keycode) {
+                if (next.type == KeyPress && next.xkey.window == event->xkey.window && next.xkey.keycode == event->xkey.keycode) {
                     // If time is nearly identical, this is veeeeery likely a key repeat and we can ignore it
-                    if (next.xkey.time - event->xkey.time < 20)
+                    if ((next.xkey.time - event->xkey.time) < 20)
                         return;
                 }
             }
@@ -222,6 +229,21 @@ void processEvent(XEvent* event) {
 
             return;
         }
+        case ClientMessage:
+        {
+            // Client messages from the window manager
+            // Useful for detecting dnd events, window close events
+            // and selection events too
+            if (event->xclient.message_type == XInternAtom(structure->display->xDisplay, "WM_PROTOCOLS", false)) {
+                // Get the specific protocol method that the window manager is 
+                // telling us to perform
+                const Atom protocol = event->xclient.data.l[0];
+
+                if (protocol == XInternAtom(structure->display->xDisplay, "WM_DELETE_WINDOW", false)) {
+                    handleCloseWindowRequest(window);
+                }
+            }
+        }
         default:
         {
             print("Do Nothing because event type was not recognized");
@@ -245,5 +267,5 @@ void diPollEvents() {
         processEvent(&event);
     }
     // Update client changes to the x11 server :D
-    XFlush(structure->display->xDisplay);
+    XSync(structure->display->xDisplay, false);
 }

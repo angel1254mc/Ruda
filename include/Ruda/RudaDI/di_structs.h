@@ -95,7 +95,6 @@ struct DI_Structure {
 	
 	XEvent currentEvent;
 	
-	bool shouldClose;
 	
 	~DI_Structure();
 	
@@ -126,6 +125,8 @@ struct DI_Window {
 		scrollCallback scroll = NULL;
 		cursorEnterCallback cursor_enter = NULL;
 	} callbacks;
+
+	bool shouldClose = false;
 
 	DI_Window(XWindow xWindow, str title = structure->currentConfig->title, unsigned int width = structure->currentConfig->width, unsigned int height = structure->currentConfig->height, DI_Window* parentWindow = NULL);
 	~DI_Window();

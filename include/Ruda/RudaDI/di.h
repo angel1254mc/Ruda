@@ -332,6 +332,12 @@ void diDrawLine (unsigned int x_origin, unsigned int y_origin, unsigned int x_de
 
 void diDrawLine (unsigned int x_origin, unsigned int y_origin, unsigned int x_dest, unsigned int y_dest, unsigned int r, unsigned int g, unsigned int b);
 
+void diClearWindow();
+
+void diDrawRectangle(unsigned int x, unsigned int y, unsigned int width, unsigned int height, Color color);
+
+void diDrawRectangle(unsigned int x, unsigned int y, unsigned int width, unsigned int height, unsigned int r, unsigned int g, unsigned int b);
+
 void diFlush();
 
 // ------------------------------- KEYCODES ------------------------------- //
