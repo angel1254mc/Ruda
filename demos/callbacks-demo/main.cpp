@@ -21,7 +21,6 @@ void key_callback(DI_Window *window, int keycode, bool pressed, int mods)
 
     if (keycode == DI_W)
     {
-        std::cout << "Forward Key: " << pressed << std::endl;
         forward = pressed;
     }
     if (keycode == DI_A)
@@ -64,7 +63,7 @@ int main()
     // Start up everything needed for the window
     diInit();
 
-    DI_Window *window = diCreateWindow("simple-window", 1920, 1080, nullptr, nullptr);
+    DI_Window *window = diCreateWindow("callbacks-demo", 1920, 1080, nullptr, nullptr);
 
     diSetKeyCallback(window, key_callback);
 
