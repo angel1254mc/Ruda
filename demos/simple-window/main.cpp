@@ -1,4 +1,3 @@
-// Your First C++ Program
 #include "RudaDI/di.h"
 #include <iostream>
 #include <stdlib.h>
