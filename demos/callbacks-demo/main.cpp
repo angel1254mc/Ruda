@@ -1,4 +1,5 @@
 #include "RudaDI/di.h"
+#include "triangle.h"
 #include <iostream>
 #include <stdlib.h>
 #include <chrono>

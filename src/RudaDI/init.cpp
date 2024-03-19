@@ -83,7 +83,7 @@ DI_Window* diCreateWindow(const str title, unsigned int width, unsigned int heig
 	// to DI_Window
 	if (XSaveContext(structure->display->xDisplay,
 				xWindow,
-				structure->xContext,
+				structure->ctx->xStore,
 				(XPointer)structure->currentWindow) != 0) {
                     std::cout << "Error saving context" << std::endl;
                 } 

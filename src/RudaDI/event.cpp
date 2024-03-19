@@ -1,5 +1,5 @@
-#include "../../include/Ruda/RudaDI/di.h"
-#include "../../include/Ruda/RudaDI/di_structs.h"
+#include "RudaDI/di.h"
+#include "RudaDI/di_structs.h"
 
 void print(char* text) {
     std::cout << text << std::endl;
@@ -98,7 +98,7 @@ void processEvent(XEvent* event) {
     XFindContext(
             structure->display->xDisplay, 
             event->xany.window, 
-            structure->xContext,
+            structure->ctx->xStore,
             (XPointer*) &window);
 
     switch(event->type) {

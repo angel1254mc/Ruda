@@ -81,7 +81,7 @@ struct DI_Structure {
 
 	std::vector<DI_Window*> windows;
 	
-	XContext xContext;
+	Ruda_Context* ctx;
 	
 	DI_Window* currentWindow;
 	

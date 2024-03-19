@@ -1,5 +1,5 @@
-#include "../../include/Ruda/RudaDI/di.h"
-#include "../../include/Ruda/RudaDI/di_structs.h"
+#include "RudaDI/di.h"
+#include "RudaDI/di_structs.h"
 
 
 windowResizeCallback diSetWindowResizeCallback(DI_Window* window, windowResizeCallback callbackFunc) {

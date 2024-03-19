@@ -16,7 +16,7 @@ DI_Window::DI_Window (Window xWindow, str title, unsigned int width, unsigned in
 	// set the foreground to white for now.
 
 
-	XSetForeground(structure->display->xDisplay, this->context->xContext, WhitePixel(structure->display->xDisplay, structure->screen));
+	XSetForeground(structure->display->xDisplay, this->context->xStore, WhitePixel(structure->display->xDisplay, structure->screen));
 	// Please please please let me know when
 	// Keys are pressed and released
 	// Buttons are pressed and released
@@ -83,7 +83,7 @@ void diSetWindowSize(DI_Window* window, int width, int height) {
 
 
 DI_Window::~DI_Window() {
-	XFreeGC(structure->display->xDisplay, this->context->xContext);
+	XFreeGC(structure->display->xDisplay, this->context->xStore);
 }
 
 

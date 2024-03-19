@@ -21,6 +21,8 @@ int main() {
 
     diSetKeyCallback(window, key_callback);
 
+    
+
     int* windowSize = diGetWindowSize(window);
     
     while (true) {

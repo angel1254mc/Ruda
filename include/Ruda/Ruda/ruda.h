@@ -20,6 +20,20 @@
 // Abstracts the Graphics Context struct from X11 to XGC to avoid ambiguity
 #define XGC GC
 
+// Abstracts the Window Context struct from X11 to XC to avoid ambiguity
+#define XC XContext
+
 #define RUDA_TRUE 1
 
 #define RUDA_FALSE 0
+
+#define DYNAMIC_STORAGE_BIT            0x0100
+#define MAP_READ_BIT                   0x0001
+#define MAP_WRITE_BIT                  0x0002
+
+
+// ------------------------------- BUFFER_OBJECT.CPP ------------------------------- //
+
+void rudaGenBuffer(uint *buffers);
+
+void rudaCreateBuffer(struct Ruda_Context *ctx, uint *buffers);
