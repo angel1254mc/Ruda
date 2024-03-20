@@ -3,7 +3,7 @@
 #include <X11/Xutil.h>
 #include <X11/Xresource.h>
 #include <threads.h>
-#include "include/Ruda/Util/u_idalloc.h"
+#include "src/util/u_idalloc.h"
 // Abstracts the Graphics Context struct from X11 to XGC to avoid ambiguity
 #define XGC GC
 #define XC XContext

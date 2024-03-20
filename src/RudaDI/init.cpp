@@ -18,7 +18,7 @@ bool diInit() {
 	structure = new DI_Structure(); //global structure referenced everywhere
     structure->display = new DI_Display(XOpenDisplay(NULL));
     structure->screen = DefaultScreen(structure->display);
-    structure->xContext = XUniqueContext();
+    structure->ctx->xStore = XUniqueContext();
     structure->root = RootWindow(structure->display->xDisplay, structure->screen);
     structure->currentConfig = &defaultWindowConfig;
     

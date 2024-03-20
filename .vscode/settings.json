@@ -72,6 +72,21 @@
         "glsl_types.h": "c",
         "list.h": "c",
         "nir_types.h": "c",
-        "u_formats.h": "c"
+        "u_formats.h": "c",
+        "cso_hash.h": "c",
+        "u_draw.h": "c",
+        "p_context.h": "c",
+        "u_inlines.h": "c",
+        "u_framebuffer.h": "c",
+        "u_box.h": "c",
+        "u_upload_mgr.h": "c",
+        "*.def": "c",
+        "u_debug.h": "c",
+        "u_atomic.h": "c",
+        "cso_cache.h": "c",
+        "u_helpers.h": "c",
+        "u_format.h": "c",
+        "endian.h": "c",
+        "nir.h": "c"
     }
 }
