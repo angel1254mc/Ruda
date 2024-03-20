@@ -35,12 +35,14 @@
 #include "pipe/p_screen.h"
 #include "util/compiler.h"
 #include "util/format/u_format.h"
+#include "util/format/u_formats.h"
 #include "util/u_debug.h"
 #include "u_debug_describe.h"
 #include "u_debug_refcnt.h"
 #include "util/u_atomic.h"
 #include "u_box.h"
 #include "util/u_math.h"
+
 
 
 #ifdef __cplusplus
@@ -534,7 +536,7 @@ pipe_buffer_read(struct pipe_context *pipe,
    if (!map)
       return;
 
-   memcpy(data, map, size);
+   mempcpy(data, map, size);
    pipe_buffer_unmap(pipe, src_transfer);
 }
 

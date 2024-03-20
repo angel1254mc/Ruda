@@ -202,14 +202,14 @@ _mesa_HashWalkMaybeLocked(const struct _mesa_HashTable *table,
       _mesa_HashWalk(table, callback, userData);
 }
 
-static inline struct gl_buffer_object *
+static inline struct Ruda_Buffer_Object *
 _mesa_HashLookupMaybeLocked(struct _mesa_HashTable *table, unsigned int key,
                             bool locked)
 {
    if (locked)
-      return _mesa_HashLookupLocked(table, key);
+      return (Ruda_Buffer_Object *) _mesa_HashLookupLocked(table, key);
    else
-      return _mesa_HashLookup(table, key);
+      return (Ruda_Buffer_Object *) _mesa_HashLookup(table, key);
 }
 
 static inline void

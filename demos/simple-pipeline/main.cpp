@@ -1,4 +1,5 @@
 #include "RudaDI/di.h"
+#include "Ruda/ruda.h"
 #include <iostream>
 #include <stdlib.h>
 #include <chrono>
@@ -28,7 +29,7 @@ int main() {
          0.00,      -1.00f,      0.00f
     };
     int tri_count = ((sizeof(vertices)/sizeof(float))/3);
-    unsigned int VBO;
+    uint VBO;
 
     rudaGenBuffer(&VBO);
     
