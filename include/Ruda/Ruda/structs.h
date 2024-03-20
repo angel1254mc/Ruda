@@ -3,7 +3,8 @@
 #include <X11/Xutil.h>
 #include <X11/Xresource.h>
 #include <threads.h>
-#include "src/util/u_idalloc.h"
+#include "../src/util/u_idalloc.h"
+#include "../src/compiler/shader_enums.h"
 // Abstracts the Graphics Context struct from X11 to XGC to avoid ambiguity
 #define XGC GC
 #define XC XContext
@@ -49,12 +50,83 @@ struct Ruda_Vertex_Array_Object
 struct Ruda_Array_Attrib
 {
    /** Currently bound array object. */
-   struct gl_vertex_array_object *VAO;
+   struct Ruda_Vertex_Array_Object *VAO;
    
 	/* GL_ARB_vertex_buffer_object */
    struct Ruda_Buffer_Object *ArrayBufferObj;
 
 };
+struct gl_program_constants
+{
+   /* logical limits */
+   int MaxInstructions;
+   int MaxAluInstructions;
+   int MaxTexInstructions;
+   int MaxTexIndirections;
+   int MaxAttribs;
+   int MaxTemps;
+   int MaxAddressRegs;
+   int MaxAddressOffset;  /**< [-MaxAddressOffset, MaxAddressOffset-1] */
+   int MaxParameters;
+   int MaxLocalParams;
+   int MaxEnvParams;
+   /* native/hardware limits */
+   int MaxNativeInstructions;
+   int MaxNativeAluInstructions;
+   int MaxNativeTexInstructions;
+   int MaxNativeTexIndirections;
+   int MaxNativeAttribs;
+   int MaxNativeTemps;
+   int MaxNativeAddressRegs;
+   int MaxNativeParameters;
+   /* For shaders */
+   int MaxUniformComponents;  /**< Usually == MaxParameters * 4 */
+
+   /**
+    * \name Per-stage input / output limits
+    *
+    * Previous to OpenGL 3.2, the intrastage data limits were advertised with
+    * a single value: GL_MAX_VARYING_COMPONENTS (GL_MAX_VARYING_VECTORS in
+    * ES).  This is stored as \c gl_constants::MaxVarying.
+    *
+    * Starting with OpenGL 3.2, the limits are advertised with per-stage
+    * variables.  Each stage as a certain number of outputs that it can feed
+    * to the next stage and a certain number inputs that it can consume from
+    * the previous stage.
+    *
+    * Vertex shader inputs do not participate this in this accounting.
+    * These are tracked exclusively by \c gl_program_constants::MaxAttribs.
+    *
+    * Fragment shader outputs do not participate this in this accounting.
+    * These are tracked exclusively by \c gl_constants::MaxDrawBuffers.
+    */
+   /*@{*/
+   int MaxInputComponents;
+   int MaxOutputComponents;
+   /*@}*/
+
+   /* ES 2.0 and GL_ARB_ES2_compatibility */
+   struct gl_precision LowFloat, MediumFloat, HighFloat;
+   struct gl_precision LowInt, MediumInt, HighInt;
+   /* GL_ARB_uniform_buffer_object */
+   int MaxUniformBlocks;
+   uint64_t MaxCombinedUniformComponents;
+   int MaxTextureImageUnits;
+
+   /* GL_ARB_shader_atomic_counters */
+   int MaxAtomicBuffers;
+   int MaxAtomicCounters;
+
+   /* GL_ARB_shader_image_load_store */
+   int MaxImageUniforms;
+
+   /* GL_ARB_shader_storage_buffer_object */
+   int MaxShaderStorageBlocks;
+};
+
+struct Ruda_Constants {
+   struct Ruda_Program_Constants Program[MESA_SHADER_STAGES]
+}
 
 
 
@@ -194,6 +266,8 @@ struct Ruda_Context {
 	XC xStore;
 
 	struct Ruda_Array_Attrib Array;	/**< Vertex arrays */
+
+   struct Ruda_Constants;
 
 	Ruda_Context(XGC xContext) {this->xContext = xContext;};
 

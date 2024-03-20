@@ -87,6 +87,9 @@
         "u_helpers.h": "c",
         "u_format.h": "c",
         "endian.h": "c",
-        "nir.h": "c"
+        "nir.h": "c",
+        "hash_table.h": "c",
+        "u_idalloc.h": "c",
+        "p_shader_tokens.h": "c"
     }
 }

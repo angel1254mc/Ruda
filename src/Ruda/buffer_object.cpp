@@ -1,9 +1,12 @@
 #include "Ruda/ruda.h"
 #include "RudaDI/di_structs.h"
 #include "hash.h"
-#include "Util/simple_mtx.h"
-#include "Util/hash_table.h"
+#include "../../src/util/simple_mtx.h"
+#include "../../src/util/hash_table.h"
 #include "context.h"
+
+#include "../../src/gallium/auxiliary/util/u_inlines.h"
+
 
 /**
  * Used as a placeholder for buffer objects between glGenBuffers() and
@@ -399,14 +402,20 @@ void rudaBufferArrayData(int size, const void *data, int usage) {
 
 
     _mesa_bufferobj_data(ctx, size, data, usage, MAP_READ_BIT | MAP_WRITE_BIT | DYNAMIC_STORAGE_BIT, bufObj);
-
-
  };
 
-// bool mesa_bufferobj_data(struct Ruda_Context* ctx,
-//                          int size,
-//                          const void* data,
-//                          int usage,
-//                         ) {
 
-// }
+
+
+ // START ENABLE VERTEX ATTRIBUTE DATA //
+   
+void rudaEnableVertexAttribArray(int index) {
+   Ruda_Context* ctx = structure->ctx;
+   Ruda_Vertex_Array_Object* vao = ctx->Array.VAO;
+   // First check that index is valid
+   if (index >= ctx->Const.Program["RUDA_SHADER_VERTEX"].MaxAttribs) {
+         std::cout << "Error: invalid index at rudaEnableVertexAttribArray"
+         return;
+   }
+}
+ // END ENABLE VERTEX ATTRIBUTE DATA //

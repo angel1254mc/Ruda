@@ -28,7 +28,7 @@
 #ifndef U_INLINES_H
 #define U_INLINES_H
 
-#include "pipe/p_context.h"
+#include "include/pipe/p_context.h"
 #include "pipe/p_defines.h"
 #include "pipe/p_shader_tokens.h"
 #include "pipe/p_state.h"
@@ -36,10 +36,10 @@
 #include "util/compiler.h"
 #include "util/format/u_format.h"
 #include "util/u_debug.h"
-#include "util/u_debug_describe.h"
-#include "util/u_debug_refcnt.h"
+#include "u_debug_describe.h"
+#include "u_debug_refcnt.h"
 #include "util/u_atomic.h"
-#include "util/u_box.h"
+#include "u_box.h"
 #include "util/u_math.h"
 
 

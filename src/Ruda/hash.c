@@ -37,9 +37,9 @@
 //#include "errors.h"
 //#include "util/glheader.h"
 #include "hash.h"
-#include "Util/hash_table.h"
-#include "Util/u_memory.h"
-#include "Util/u_idalloc.h"
+#include "../../src/util/hash_table.h"
+#include "../../src/util/u_memory.h"
+#include "../../src/util/u_idalloc.h"
 
 
 /**

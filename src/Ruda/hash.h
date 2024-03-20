@@ -37,7 +37,7 @@
 //#include "util/glheader.h"
 
 #include <threads.h>
-#include "Util/simple_mtx.h"
+#include "../../src/util/simple_mtx.h"
 
 struct util_idalloc;
 
