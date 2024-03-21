@@ -24,3 +24,20 @@ do {								\
 
 //   if (ctx->Driver.NeedFlush & FLUSH_STORED_VERTICES)		
 //    vbo_exec_FlushVertices(ctx, FLUSH_STORED_VERTICES);	
+
+/**
+ * Are we currently between glBegin and glEnd?
+ * During execution, not display list compilation.
+ */
+static inline bool
+_mesa_inside_begin_end(const struct Ruda_Context *ctx)
+{
+   return ctx->Driver.CurrentExecPrimitive != PRIM_OUTSIDE_BEGIN_END;
+}
+
+static inline bool
+_mesa_hw_select_enabled(const struct Ruda_Context *ctx)
+{
+   return ctx->RenderMode == RUDA_SELECT &&
+      ctx->Const.HardwareAcceleratedSelect;
+}

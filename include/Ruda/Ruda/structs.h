@@ -5,6 +5,7 @@
 #include <threads.h>
 #include "../src/util/u_idalloc.h"
 #include "../src/compiler/shader_enums.h"
+//#include "util/glheader.h"
 // Abstracts the Graphics Context struct from X11 to XGC to avoid ambiguity
 #define XGC GC
 #define XC XContext
@@ -15,8 +16,8 @@
 #define MAX_PROGRAM_ENV_PARAMS         256
 #define MAX_TEXTURE_IMAGE_UNITS 32
 #define MAX_SAMPLERS                   MAX_TEXTURE_IMAGE_UNITS
-
-
+#define VBO_MAX_PRIM 64
+#define VBO_MAX_COPIED_VERTS 31
 
 typedef enum
 {
@@ -76,6 +77,472 @@ typedef enum
    MAP_COUNT
 } Ruda_Map_Buffer_Index;
 
+struct gl_extensions
+{
+   bool EXT_vertex_array_bgra;
+   bool ARB_buffer_storage;
+};
+
+/* vertex_formats[(gltype & 0x3f) | (double << 5)][integer*2 + normalized][size - 1] */
+static const uint8_t vertex_formats[][4][4] = {
+   { /* GL_BYTE */
+      {
+         PIPE_FORMAT_R8_SSCALED,
+         PIPE_FORMAT_R8G8_SSCALED,
+         PIPE_FORMAT_R8G8B8_SSCALED,
+         PIPE_FORMAT_R8G8B8A8_SSCALED
+      },
+      {
+         PIPE_FORMAT_R8_SNORM,
+         PIPE_FORMAT_R8G8_SNORM,
+         PIPE_FORMAT_R8G8B8_SNORM,
+         PIPE_FORMAT_R8G8B8A8_SNORM
+      },
+      {
+         PIPE_FORMAT_R8_SINT,
+         PIPE_FORMAT_R8G8_SINT,
+         PIPE_FORMAT_R8G8B8_SINT,
+         PIPE_FORMAT_R8G8B8A8_SINT
+      },
+   },
+   { /* GL_UNSIGNED_BYTE */
+      {
+         PIPE_FORMAT_R8_USCALED,
+         PIPE_FORMAT_R8G8_USCALED,
+         PIPE_FORMAT_R8G8B8_USCALED,
+         PIPE_FORMAT_R8G8B8A8_USCALED
+      },
+      {
+         PIPE_FORMAT_R8_UNORM,
+         PIPE_FORMAT_R8G8_UNORM,
+         PIPE_FORMAT_R8G8B8_UNORM,
+         PIPE_FORMAT_R8G8B8A8_UNORM
+      },
+      {
+         PIPE_FORMAT_R8_UINT,
+         PIPE_FORMAT_R8G8_UINT,
+         PIPE_FORMAT_R8G8B8_UINT,
+         PIPE_FORMAT_R8G8B8A8_UINT
+      },
+   },
+   { /* GL_SHORT */
+      {
+         PIPE_FORMAT_R16_SSCALED,
+         PIPE_FORMAT_R16G16_SSCALED,
+         PIPE_FORMAT_R16G16B16_SSCALED,
+         PIPE_FORMAT_R16G16B16A16_SSCALED
+      },
+      {
+         PIPE_FORMAT_R16_SNORM,
+         PIPE_FORMAT_R16G16_SNORM,
+         PIPE_FORMAT_R16G16B16_SNORM,
+         PIPE_FORMAT_R16G16B16A16_SNORM
+      },
+      {
+         PIPE_FORMAT_R16_SINT,
+         PIPE_FORMAT_R16G16_SINT,
+         PIPE_FORMAT_R16G16B16_SINT,
+         PIPE_FORMAT_R16G16B16A16_SINT
+      },
+   },
+   { /* GL_UNSIGNED_SHORT */
+      {
+         PIPE_FORMAT_R16_USCALED,
+         PIPE_FORMAT_R16G16_USCALED,
+         PIPE_FORMAT_R16G16B16_USCALED,
+         PIPE_FORMAT_R16G16B16A16_USCALED
+      },
+      {
+         PIPE_FORMAT_R16_UNORM,
+         PIPE_FORMAT_R16G16_UNORM,
+         PIPE_FORMAT_R16G16B16_UNORM,
+         PIPE_FORMAT_R16G16B16A16_UNORM
+      },
+      {
+         PIPE_FORMAT_R16_UINT,
+         PIPE_FORMAT_R16G16_UINT,
+         PIPE_FORMAT_R16G16B16_UINT,
+         PIPE_FORMAT_R16G16B16A16_UINT
+      },
+   },
+   { /* GL_INT */
+      {
+         PIPE_FORMAT_R32_SSCALED,
+         PIPE_FORMAT_R32G32_SSCALED,
+         PIPE_FORMAT_R32G32B32_SSCALED,
+         PIPE_FORMAT_R32G32B32A32_SSCALED
+      },
+      {
+         PIPE_FORMAT_R32_SNORM,
+         PIPE_FORMAT_R32G32_SNORM,
+         PIPE_FORMAT_R32G32B32_SNORM,
+         PIPE_FORMAT_R32G32B32A32_SNORM
+      },
+      {
+         PIPE_FORMAT_R32_SINT,
+         PIPE_FORMAT_R32G32_SINT,
+         PIPE_FORMAT_R32G32B32_SINT,
+         PIPE_FORMAT_R32G32B32A32_SINT
+      },
+   },
+   { /* GL_UNSIGNED_INT */
+      {
+         PIPE_FORMAT_R32_USCALED,
+         PIPE_FORMAT_R32G32_USCALED,
+         PIPE_FORMAT_R32G32B32_USCALED,
+         PIPE_FORMAT_R32G32B32A32_USCALED
+      },
+      {
+         PIPE_FORMAT_R32_UNORM,
+         PIPE_FORMAT_R32G32_UNORM,
+         PIPE_FORMAT_R32G32B32_UNORM,
+         PIPE_FORMAT_R32G32B32A32_UNORM
+      },
+      {
+         PIPE_FORMAT_R32_UINT,
+         PIPE_FORMAT_R32G32_UINT,
+         PIPE_FORMAT_R32G32B32_UINT,
+         PIPE_FORMAT_R32G32B32A32_UINT
+      },
+   },
+   { /* GL_FLOAT */
+      {
+         PIPE_FORMAT_R32_FLOAT,
+         PIPE_FORMAT_R32G32_FLOAT,
+         PIPE_FORMAT_R32G32B32_FLOAT,
+         PIPE_FORMAT_R32G32B32A32_FLOAT
+      },
+      {
+         PIPE_FORMAT_R32_FLOAT,
+         PIPE_FORMAT_R32G32_FLOAT,
+         PIPE_FORMAT_R32G32B32_FLOAT,
+         PIPE_FORMAT_R32G32B32A32_FLOAT
+      },
+   },
+   {{0}}, /* GL_2_BYTES */
+   {{0}}, /* GL_3_BYTES */
+   {{0}}, /* GL_4_BYTES */
+   { /* GL_DOUBLE */
+      {
+         PIPE_FORMAT_R64_FLOAT,
+         PIPE_FORMAT_R64G64_FLOAT,
+         PIPE_FORMAT_R64G64B64_FLOAT,
+         PIPE_FORMAT_R64G64B64A64_FLOAT
+      },
+      {
+         PIPE_FORMAT_R64_FLOAT,
+         PIPE_FORMAT_R64G64_FLOAT,
+         PIPE_FORMAT_R64G64B64_FLOAT,
+         PIPE_FORMAT_R64G64B64A64_FLOAT
+      },
+   },
+   { /* GL_HALF_FLOAT */
+      {
+         PIPE_FORMAT_R16_FLOAT,
+         PIPE_FORMAT_R16G16_FLOAT,
+         PIPE_FORMAT_R16G16B16_FLOAT,
+         PIPE_FORMAT_R16G16B16A16_FLOAT
+      },
+      {
+         PIPE_FORMAT_R16_FLOAT,
+         PIPE_FORMAT_R16G16_FLOAT,
+         PIPE_FORMAT_R16G16B16_FLOAT,
+         PIPE_FORMAT_R16G16B16A16_FLOAT
+      },
+   },
+   { /* GL_FIXED */
+      {
+         PIPE_FORMAT_R32_FIXED,
+         PIPE_FORMAT_R32G32_FIXED,
+         PIPE_FORMAT_R32G32B32_FIXED,
+         PIPE_FORMAT_R32G32B32A32_FIXED
+      },
+      {
+         PIPE_FORMAT_R32_FIXED,
+         PIPE_FORMAT_R32G32_FIXED,
+         PIPE_FORMAT_R32G32B32_FIXED,
+         PIPE_FORMAT_R32G32B32A32_FIXED
+      },
+   },
+   {{0}}, /* unused (13) */
+   {{0}}, /* unused (14) */
+   {{0}}, /* unused (15) */
+   {{0}}, /* unused (16) */
+   {{0}}, /* unused (17) */
+   {{0}}, /* unused (18) */
+   {{0}}, /* unused (19) */
+   {{0}}, /* unused (20) */
+   {{0}}, /* unused (21) */
+   {{0}}, /* unused (22) */
+   {{0}}, /* unused (23) */
+   {{0}}, /* unused (24) */
+   {{0}}, /* unused (25) */
+   {{0}}, /* unused (26) */
+   {{0}}, /* unused (27) */
+   {{0}}, /* unused (28) */
+   {{0}}, /* unused (29) */
+   {{0}}, /* unused (30) */
+   { /* GL_INT_2_10_10_10_REV */
+      {
+         0,
+         0,
+         0,
+         PIPE_FORMAT_R10G10B10A2_SSCALED
+      },
+      {
+         0,
+         0,
+         0,
+         PIPE_FORMAT_R10G10B10A2_SNORM
+      },
+   },
+   {{0}}, /* unused (32) */
+   { /* GL_HALF_FLOAT_OES */
+      {
+         PIPE_FORMAT_R16_FLOAT,
+         PIPE_FORMAT_R16G16_FLOAT,
+         PIPE_FORMAT_R16G16B16_FLOAT,
+         PIPE_FORMAT_R16G16B16A16_FLOAT
+      },
+      {
+         PIPE_FORMAT_R16_FLOAT,
+         PIPE_FORMAT_R16G16_FLOAT,
+         PIPE_FORMAT_R16G16B16_FLOAT,
+         PIPE_FORMAT_R16G16B16A16_FLOAT
+      },
+   },
+   {{0}}, /* unused (34) */
+   {{0}}, /* unused (35) */
+   {{0}}, /* unused (36) */
+   {{0}}, /* unused (37) */
+   {{0}}, /* unused (38) */
+   {{0}}, /* unused (39) */
+   { /* GL_UNSIGNED_INT_2_10_10_10_REV */
+      {
+         0,
+         0,
+         0,
+         PIPE_FORMAT_R10G10B10A2_USCALED
+      },
+      {
+         0,
+         0,
+         0,
+         PIPE_FORMAT_R10G10B10A2_UNORM
+      },
+   },
+   {{0}}, /* unused (41) */
+   { /* GL_DOUBLE | (doubles << 5) (real double) */
+     {
+        PIPE_FORMAT_R64_UINT,
+        PIPE_FORMAT_R64G64_UINT,
+        PIPE_FORMAT_R64G64B64_UINT,
+        PIPE_FORMAT_R64G64B64A64_UINT,
+     },
+   },
+   {{0}}, /* unused (43) */
+   {{0}}, /* unused (44) */
+   {{0}}, /* unused (45) */
+   {{0}}, /* unused (46) */
+   { /* GL_UNSIGNED_INT64_ARB | (doubles << 5) (doubles is always true) */
+     {0},
+     {0},
+     {
+        PIPE_FORMAT_R64_UINT,
+        PIPE_FORMAT_R64G64_UINT,
+        PIPE_FORMAT_R64G64B64_UINT,
+        PIPE_FORMAT_R64G64B64A64_UINT,
+     },
+   },
+   {{0}}, /* unused (48) */
+   {{0}}, /* unused (49) */
+   {{0}}, /* unused (50) */
+   {{0}}, /* unused (51) */
+   {{0}}, /* unused (52) */
+   {{0}}, /* unused (53) */
+   {{0}}, /* unused (54) */
+   {{0}}, /* unused (55) */
+   {{0}}, /* unused (56) */
+   {{0}}, /* unused (57) */
+   {{0}}, /* unused (58) */
+   { /* GL_UNSIGNED_INT_10F_11F_11F_REV */
+      {
+         0,
+         0,
+         PIPE_FORMAT_R11G11B10_FLOAT,
+         0
+      },
+      {
+         0,
+         0,
+         PIPE_FORMAT_R11G11B10_FLOAT,
+         0
+      },
+   },
+};
+
+
+union Ruda_Vertex_Format_User {
+   struct {
+      unsigned short Type;        /**< datatype: GL_FLOAT, GL_INT, etc */
+      bool Bgra;            /**< true if GL_BGRA, else GL_RGBA */
+      uint8_t Size:5;       /**< components per element (1,2,3,4) */
+      bool Normalized:1;    /**< GL_ARB_vertex_program */
+      bool Integer:1;       /**< Integer-valued? */
+      bool Doubles:1;       /**< double values are not converted to floats */
+   };
+   uint32_t All;
+};
+
+/* bgra_vertex_formats[type & 0x3][normalized] */
+static const uint8_t bgra_vertex_formats[4][2] = {
+   { /* GL_UNSIGNED_INT_2_10_10_10_REV */
+      PIPE_FORMAT_B10G10R10A2_USCALED,
+      PIPE_FORMAT_B10G10R10A2_UNORM
+   },
+   { /* GL_UNSIGNED_BYTE */
+      0,
+      PIPE_FORMAT_B8G8R8A8_UNORM
+   },
+   {0}, /* unused (2) */
+   { /* GL_INT_2_10_10_10_REV */
+      PIPE_FORMAT_B10G10R10A2_SSCALED,
+      PIPE_FORMAT_B10G10R10A2_SNORM
+   }
+};
+
+
+struct Ruda_Vertex_Format
+{
+   union Ruda_Vertex_Format_User User;
+   enum pipe_format _PipeFormat:16; /**< pipe_format for Gallium */
+   unsigned short _ElementSize; /**< Size of each element in bytes */
+};
+
+
+struct Ruda_Array_Attributes
+{
+   /** Points to client array data. Not used when a VBO is bound */
+   const unsigned char *Ptr;
+   /** Offset of the first element relative to the binding offset */
+   uint RelativeOffset;
+   /** Vertex format */
+   struct Ruda_Vertex_Format Format;
+   /** Stride as specified with gl*Pointer() */
+   short Stride;
+   /** Index into gl_vertex_array_object::BufferBinding[] array */
+   unsigned char BufferBindingIndex;
+
+   /**
+    * Derived effective buffer binding index
+    *
+    * Index into the gl_vertex_buffer_binding array of the vao.
+    * Similar to BufferBindingIndex, but with the mapping of the
+    * position/generic0 attributes applied and with identical
+    * gl_vertex_buffer_binding entries collapsed to a single
+    * entry within the vao.
+    *
+    * The value is valid past calling _mesa_update_vao_derived_arrays.
+    * Note that _mesa_update_vao_derived_arrays is called when binding
+    * the VAO to Array._DrawVAO.
+    */
+   unsigned char _EffBufferBindingIndex;
+   /**
+    * Derived effective relative offset.
+    *
+    * Relative offset to the effective buffers offset in
+    * gl_vertex_buffer_binding::_EffOffset.
+    *
+    * The value is valid past calling _mesa_update_vao_derived_arrays.
+    * Note that _mesa_update_vao_derived_arrays is called when binding
+    * the VAO to Array._DrawVAO.
+    */
+   unsigned short _EffRelativeOffset;
+};
+
+typedef enum
+{
+   VERT_ATTRIB_POS,
+   VERT_ATTRIB_NORMAL,
+   VERT_ATTRIB_COLOR0,
+   VERT_ATTRIB_COLOR1,
+   VERT_ATTRIB_FOG,
+   VERT_ATTRIB_COLOR_INDEX,
+   VERT_ATTRIB_TEX0,
+   VERT_ATTRIB_TEX1,
+   VERT_ATTRIB_TEX2,
+   VERT_ATTRIB_TEX3,
+   VERT_ATTRIB_TEX4,
+   VERT_ATTRIB_TEX5,
+   VERT_ATTRIB_TEX6,
+   VERT_ATTRIB_TEX7,
+   VERT_ATTRIB_POINT_SIZE,
+   VERT_ATTRIB_GENERIC0,
+   VERT_ATTRIB_GENERIC1,
+   VERT_ATTRIB_GENERIC2,
+   VERT_ATTRIB_GENERIC3,
+   VERT_ATTRIB_GENERIC4,
+   VERT_ATTRIB_GENERIC5,
+   VERT_ATTRIB_GENERIC6,
+   VERT_ATTRIB_GENERIC7,
+   VERT_ATTRIB_GENERIC8,
+   VERT_ATTRIB_GENERIC9,
+   VERT_ATTRIB_GENERIC10,
+   VERT_ATTRIB_GENERIC11,
+   VERT_ATTRIB_GENERIC12,
+   VERT_ATTRIB_GENERIC13,
+   VERT_ATTRIB_GENERIC14,
+   VERT_ATTRIB_GENERIC15,
+   /* This must be last to keep VS inputs and vertex attributes in the same
+    * order in st/mesa, and st/mesa always adds edgeflags as the last input.
+    */
+   VERT_ATTRIB_EDGEFLAG,
+   VERT_ATTRIB_MAX
+} Ruda_Vert_Attrib;
+
+/**
+ * This describes the buffer object used for a vertex array (or
+ * multiple vertex arrays).  If BufferObj points to the default/null
+ * buffer object, then the vertex array lives in user memory and not a VBO.
+ */
+struct gl_vertex_buffer_binding
+{
+   signed long int Offset;                    /**< User-specified offset */
+   int Stride;                     /**< User-specified stride */
+   uint InstanceDivisor;             /**< GL_ARB_instanced_arrays */
+   struct Ruda_Buffer_Object *BufferObj; /**< GL_ARB_vertex_buffer_object */
+   uint _BoundArrays;            /**< Arrays bound to this binding point */
+
+   /**
+    * Derived effective bound arrays.
+    *
+    * The effective binding handles enabled arrays past the
+    * position/generic0 attribute mapping and reduces the refered
+    * gl_vertex_buffer_binding entries to a unique subset.
+    *
+    * The value is valid past calling _mesa_update_vao_derived_arrays.
+    * Note that _mesa_update_vao_derived_arrays is called when binding
+    * the VAO to Array._DrawVAO.
+    */
+   uint _EffBoundArrays;
+   /**
+    * Derived offset.
+    *
+    * The absolute offset to that we can collapse some attributes
+    * to this unique effective binding.
+    * For user space array bindings this contains the smallest pointer value
+    * in the bound and interleaved arrays.
+    * For VBO bindings this contains an offset that lets the attributes
+    * _EffRelativeOffset stay positive and in bounds with
+    * Const.MaxVertexAttribRelativeOffset
+    *
+    * The value is valid past calling _mesa_update_vao_derived_arrays.
+    * Note that _mesa_update_vao_derived_arrays is called when binding
+    * the VAO to Array._DrawVAO.
+    */
+   signed long int _EffOffset;
+};
+
 
 struct Ruda_Vertex_Array_Object
 {
@@ -84,6 +551,10 @@ struct Ruda_Vertex_Array_Object
 
    /** Mask of VERT_BIT_* values indicating which arrays are enabled */
    unsigned int Enabled;
+
+   char *Label;       /**< GL_KHR_debug */
+
+   int RefCount;
       /**
     * Mask indicating which VertexAttrib and BufferBinding structures have
     * been changed since the VAO creation. No bit is ever cleared to 0 by
@@ -92,6 +563,21 @@ struct Ruda_Vertex_Array_Object
     * this either.
     */
    unsigned int NonDefaultStateMask;
+
+   /** Vertex buffer bindings */
+   struct gl_vertex_buffer_binding BufferBinding[VERT_ATTRIB_MAX];
+
+   /** Mask indicating which vertex arrays have vertex buffer associated. */
+   uint VertexAttribBufferMask;
+
+   /** Mask indicating which vertex arrays have a non-zero instance divisor. */
+   uint NonZeroDivisorMask;
+
+   /** Mask of VERT_BIT_* values indicating which arrays are enabled */
+   uint Enabled;
+
+
+
 
    /**
     * Marked to true if the object is shared between contexts and immutable.
@@ -105,6 +591,17 @@ struct Ruda_Vertex_Array_Object
 
    /** "Enabled" with the position/generic0 attribute aliasing resolved */
    unsigned int _EnabledWithMapMode;
+
+      /**
+    * Whether the VAO is changed by the application so often that some of
+    * the derived fields are not updated at all to decrease overhead.
+    * Also, interleaved arrays are not detected, because it's too expensive
+    * to do that before every draw call.
+    */
+   bool IsDynamic;
+
+   /** Vertex attribute arrays */
+   struct Ruda_Array_Attributes VertexAttrib[VERT_ATTRIB_MAX];
 
 };
 
@@ -457,8 +954,19 @@ struct Ruda_Program
    };
 };
 
+
+
+
 struct Ruda_Constants {
    struct Ruda_Program_Constants Program[MESA_SHADER_STAGES];
+      /** Whether the vertex buffer offset is a signed 32-bit integer. */
+   bool VertexBufferOffsetIsInt32;
+      /** Use hardware accelerated GL_SELECT */
+   bool HardwareAcceleratedSelect;
+
+      /** GL_ARB_vertex_attrib_binding */
+   int MaxVertexAttribRelativeOffset;
+
 };
 
 struct Ruda_Polygon_Attrib {
@@ -703,7 +1211,7 @@ struct Ruda_Context {
    Ruda_API API;
 
 	struct pipe_context *pipe;
-	
+	struct vbo_context vbo_context;
 	// binds together events + window objects
 	XC xStore;
    
@@ -726,6 +1234,18 @@ struct Ruda_Context {
    uint NewState;      /**< bitwise-or of _NEW_* flags */
    uint PopAttribState; /**< Updated state since glPushAttrib */
    uint64_t NewDriverState;  /**< bitwise-or of flags from DriverFlags */
+
+   /** Extension information */
+   struct gl_extensions Extensions;
+
+      /** Whether Shared->BufferObjects has already been locked for this context. */
+   bool BufferObjectsLocked;
+   /** Whether Shared->TexMutex has already been locked for this context. */
+   bool TexturesLocked;
+
+   uint TextureStateTimestamp; /**< detect changes to shared state */
+
+   struct Ruda_Tess_Ctrl_Program_State TessCtrlProgram;
 
 	Ruda_Context(XGC xContext) {this->xContext = xContext;};
 
@@ -1035,4 +1555,390 @@ struct dd_function_table {
    /*@}*/
 
    //bool (*ValidateEGLImage)(struct gl_context *ctx, GLeglImageOES image_handle);
+};
+
+struct vbo_exec_context
+{
+   struct {
+      /* Multi draw where the mode can vary between draws. */
+      struct pipe_draw_info info;
+      struct pipe_draw_start_count_bias draw[VBO_MAX_PRIM];
+      GLubyte mode[VBO_MAX_PRIM];            /**< primitive modes per draw */
+      struct vbo_markers markers[VBO_MAX_PRIM];
+      unsigned prim_count;
+
+      struct Ruda_Buffer_Object *bufferobj;
+
+      uint vertex_size;       /* in dwords */
+      uint vertex_size_no_pos;
+
+      fi_type *buffer_map;
+      fi_type *buffer_ptr;              /* cursor, points into buffer */
+      uint   buffer_used;             /* in bytes */
+      unsigned buffer_offset;           /* only for persistent mappings */
+      fi_type vertex[VBO_ATTRIB_MAX*4]; /* current vertex */
+
+      uint vert_count;   /**< Number of vertices currently in buffer */
+      uint max_vert;     /**< Max number of vertices allowed in buffer */
+      struct vbo_exec_copied_vtx copied;
+
+      uint64_t enabled;             /**< mask of enabled vbo arrays. */
+
+      /* Keep these packed in a structure for faster access. */
+      struct {
+         unsigned short type;       /**< GL_FLOAT, GL_DOUBLE, GL_INT, etc */
+         unsigned char active_size; /**< number of components, but can shrink */
+         unsigned char size;        /**< number of components (1..4) */
+      } attr[VBO_ATTRIB_MAX];
+
+      /** pointers into the current 'vertex' array, declared above */
+      fi_type *attrptr[VBO_ATTRIB_MAX];
+   } vtx;
+
+   struct {
+      bool recalculate_maps;
+      struct vbo_exec_eval1_map map1[VERT_ATTRIB_MAX];
+      struct vbo_exec_eval2_map map2[VERT_ATTRIB_MAX];
+   } eval;
+
+#ifndef NDEBUG
+   int flush_call_depth;
+#endif
+};
+
+struct vbo_exec_eval1_map {
+   struct gl_1d_map *map;
+   uint sz;
+};
+
+struct vbo_exec_eval2_map {
+   struct gl_2d_map *map;
+   uint sz;
+};
+
+struct vbo_exec_copied_vtx {
+   fi_type buffer[VBO_ATTRIB_MAX * 4 * VBO_MAX_COPIED_VERTS];
+   uint nr;
+};
+
+
+struct vbo_markers
+{
+   /**
+    * If false and the primitive is a line loop, the first vertex is
+    * the beginning of the line loop and it won't be drawn.
+    * Instead, it will be moved to the end.
+    *
+    * Drivers shouldn't reset the line stipple pattern walker if begin is
+    * false and mode is a line strip.
+    */
+   bool begin;
+
+   /**
+    * If true and the primitive is a line loop, it will be closed.
+    */
+   bool end;
+};
+
+typedef union { float f; int i; unsigned u; } fi_type;
+
+
+/*
+ * Note: The first 32 attributes match the VERT_ATTRIB_* definitions.
+ * However, we have extra attributes for storing per-vertex glMaterial
+ * values.  The material attributes get shifted into the generic positions
+ * at draw time.
+ *
+ * One reason we can't alias materials and generics here is display lists.
+ * A display list might contain both generic attributes and material
+ * attributes which are selected at draw time depending on whether we're
+ * using fixed function or a shader.  <sigh>
+ */ 
+enum vbo_attrib {
+   VBO_ATTRIB_POS,
+   VBO_ATTRIB_NORMAL,
+   VBO_ATTRIB_COLOR0,
+   VBO_ATTRIB_COLOR1,
+   VBO_ATTRIB_FOG,
+   VBO_ATTRIB_COLOR_INDEX,
+   VBO_ATTRIB_TEX0,
+   VBO_ATTRIB_TEX1,
+   VBO_ATTRIB_TEX2,
+   VBO_ATTRIB_TEX3,
+   VBO_ATTRIB_TEX4,
+   VBO_ATTRIB_TEX5,
+   VBO_ATTRIB_TEX6,
+   VBO_ATTRIB_TEX7,
+   VBO_ATTRIB_POINT_SIZE,
+
+   VBO_ATTRIB_GENERIC0, /* Not used? */
+   VBO_ATTRIB_GENERIC1,
+   VBO_ATTRIB_GENERIC2,
+   VBO_ATTRIB_GENERIC3,
+   VBO_ATTRIB_GENERIC4,
+   VBO_ATTRIB_GENERIC5,
+   VBO_ATTRIB_GENERIC6,
+   VBO_ATTRIB_GENERIC7,
+   VBO_ATTRIB_GENERIC8,
+   VBO_ATTRIB_GENERIC9,
+   VBO_ATTRIB_GENERIC10,
+   VBO_ATTRIB_GENERIC11,
+   VBO_ATTRIB_GENERIC12,
+   VBO_ATTRIB_GENERIC13,
+   VBO_ATTRIB_GENERIC14,
+   VBO_ATTRIB_GENERIC15,
+   VBO_ATTRIB_EDGEFLAG,
+
+   /* XXX: in the vertex program inputs_read flag, we alias
+    * materials and generics and use knowledge about the program
+    * (whether it is a fixed-function emulation) to
+    * differentiate.  Here we must keep them apart instead.
+    */
+   VBO_ATTRIB_MAT_FRONT_AMBIENT,
+   VBO_ATTRIB_MAT_BACK_AMBIENT,
+   VBO_ATTRIB_MAT_FRONT_DIFFUSE,
+   VBO_ATTRIB_MAT_BACK_DIFFUSE,
+   VBO_ATTRIB_MAT_FRONT_SPECULAR,
+   VBO_ATTRIB_MAT_BACK_SPECULAR,
+   VBO_ATTRIB_MAT_FRONT_EMISSION,
+   VBO_ATTRIB_MAT_BACK_EMISSION,
+   VBO_ATTRIB_MAT_FRONT_SHININESS,
+   VBO_ATTRIB_MAT_BACK_SHININESS,
+   VBO_ATTRIB_MAT_FRONT_INDEXES,
+   VBO_ATTRIB_MAT_BACK_INDEXES,
+
+   /* Offset into HW GL_SELECT result buffer. */
+   VBO_ATTRIB_SELECT_RESULT_OFFSET,
+
+   VBO_ATTRIB_MAX
+};
+
+/**
+ * The VBO module implemented in src/vbo.
+ */
+struct vbo_context {
+   struct Ruda_Array_Attributes current[VBO_ATTRIB_MAX];
+
+   struct Ruda_Vertex_Array_Object *VAO;
+
+   struct vbo_exec_context exec;
+   struct vbo_save_context save;
+};
+
+struct vbo_save_context {
+   uint64_t enabled; /**< mask of enabled vbo arrays. */
+   unsigned char attrsz[VBO_ATTRIB_MAX];  /**< 1, 2, 3 or 4 */
+   unsigned short attrtype[VBO_ATTRIB_MAX];  /**< GL_FLOAT, GL_INT, etc */
+   unsigned char active_sz[VBO_ATTRIB_MAX];  /**< 1, 2, 3 or 4 */
+   uint vertex_size;  /**< size in GLfloats */
+   struct Ruda_Vertex_Array_Object *VAO[VP_MODE_MAX];
+
+   struct vbo_save_vertex_store *vertex_store;
+   struct vbo_save_primitive_store *prim_store;
+   struct Ruda_Buffer_Object *current_bo;
+   unsigned current_bo_bytes_used;
+
+   fi_type vertex[VBO_ATTRIB_MAX*4];	   /* current values */
+   fi_type *attrptr[VBO_ATTRIB_MAX];
+
+   struct {
+      fi_type *buffer;
+      uint nr;
+   } copied;
+
+   fi_type *current[VBO_ATTRIB_MAX]; /* points into ctx->ListState */
+   unsigned char *currentsz[VBO_ATTRIB_MAX];
+
+   bool dangling_attr_ref;
+   bool out_of_memory;  /**< True if last VBO allocation failed */
+   bool no_current_update;
+};
+
+struct vbo_save_vertex_store {
+   fi_type *buffer_in_ram;
+   uint buffer_in_ram_size;
+   uint used;           /**< Number of 4-byte words used in buffer */
+};
+
+struct vbo_save_primitive_store {
+   struct Ruda_Prim *prims;
+   uint used;
+   uint size;
+};
+
+struct Ruda_Prim
+{
+   unsigned char mode;    /**< GL_POINTS, GL_LINES, GL_QUAD_STRIP, etc */
+
+   /**
+    * tnl: If true, line stipple emulation will reset the pattern walker.
+    * vbo: If false and the primitive is a line loop, the first vertex is
+    *      the beginning of the line loop and it won't be drawn.
+    *      Instead, it will be moved to the end.
+    */
+   bool begin;
+
+   /**
+    * tnl: If true and the primitive is a line loop, it will be closed.
+    * vbo: Same as tnl.
+    */
+   bool end;
+
+   uint start;
+   uint count;
+   int basevertex;
+   uint draw_id;
+};
+
+/**
+ * Context state for tessellation control programs.
+ */
+struct Ruda_Tess_Ctrl_Program_State
+{
+   /** Currently bound and valid shader. */
+   struct Ruda_Program *_Current;
+
+   int patch_vertices;
+   float patch_default_outer_level[4];
+   float patch_default_inner_level[2];
+};
+
+/**
+ * A framebuffer is a collection of renderbuffers (color, depth, stencil, etc).
+ * In C++ terms, think of this as a base class from which device drivers
+ * will make derived classes.
+ */
+struct Ruda_Framebuffer
+{
+   simple_mtx_t Mutex;  /**< for thread safety */
+   /**
+    * If zero, this is a window system framebuffer.  If non-zero, this
+    * is a FBO framebuffer; note that for some devices (i.e. those with
+    * a natural pixel coordinate system for FBOs that differs from the
+    * OpenGL/Mesa coordinate system), this means that the viewport,
+    * polygon face orientation, and polygon stipple will have to be inverted.
+    */
+   uint Name;
+   GLint RefCount;
+
+   GLchar *Label;       /**< GL_KHR_debug */
+
+   bool DeletePending;
+
+   /**
+    * The framebuffer's visual. Immutable if this is a window system buffer.
+    * Computed from attachments if user-made FBO.
+    */
+   struct Ruda_Config Visual;
+
+   /**
+    * Size of frame buffer in pixels. If there are no attachments, then both
+    * of these are 0.
+    */
+   uint Width, Height;
+
+   /**
+    * In the case that the framebuffer has no attachment (i.e.
+    * GL_ARB_framebuffer_no_attachments) then the geometry of
+    * the framebuffer is specified by the default values.
+    */
+   struct {
+     uint Width, Height, Layers, NumSamples;
+     bool FixedSampleLocations;
+     /* Derived from NumSamples by the driver so that it can choose a valid
+      * value for the hardware.
+      */
+     uint _NumSamples;
+   } DefaultGeometry;
+
+   /** \name  Drawing bounds (Intersection of buffer size and scissor box)
+    * The drawing region is given by [_Xmin, _Xmax) x [_Ymin, _Ymax),
+    * (inclusive for _Xmin and _Ymin while exclusive for _Xmax and _Ymax)
+    */
+   /*@{*/
+   int _Xmin, _Xmax;
+   int _Ymin, _Ymax;
+   /*@}*/
+
+   /** \name  Derived Z buffer stuff */
+   /*@{*/
+   uint _DepthMax;	/**< Max depth buffer value */
+   GLfloat _DepthMaxF;	/**< Float max depth buffer value */
+   GLfloat _MRD;	/**< minimum resolvable difference in Z values */
+   /*@}*/
+
+   /** One of the GL_FRAMEBUFFER_(IN)COMPLETE_* tokens */
+   unsigned short _Status;
+
+   /** Whether one of Attachment has Type != GL_NONE
+    * NOTE: the values for Width and Height are set to 0 in case of having
+    * no attachments, a backend driver supporting the extension
+    * GL_ARB_framebuffer_no_attachments must check for the flag _HasAttachments
+    * and if GL_FALSE, must then use the values in DefaultGeometry to initialize
+    * its viewport, scissor and so on (in particular _Xmin, _Xmax, _Ymin and
+    * _Ymax do NOT take into account _HasAttachments being false). To get the
+    * geometry of the framebuffer, the  helper functions
+    *   _mesa_geometric_width(),
+    *   _mesa_geometric_height(),
+    *   _mesa_geometric_samples() and
+    *   _mesa_geometric_layers()
+    * are available that check _HasAttachments.
+    */
+   bool _HasAttachments;
+
+   uint _IntegerBuffers;  /**< Which color buffers are integer valued */
+   uint _BlendForceAlphaToOne;  /**< Which color buffers need blend factor adjustment */
+   uint _IsRGB;  /**< Which color buffers have an RGB base format? */
+   uint _FP32Buffers; /**< Which color buffers are FP32 */
+
+   /* ARB_color_buffer_float */
+   bool _AllColorBuffersFixedPoint; /* no integer, no float */
+   bool _HasSNormOrFloatColorBuffer;
+
+   /**
+    * The maximum number of layers in the framebuffer, or 0 if the framebuffer
+    * is not layered.  For cube maps and cube map arrays, each cube face
+    * counts as a layer. As the case for Width, Height a backend driver
+    * supporting GL_ARB_framebuffer_no_attachments must use DefaultGeometry
+    * in the case that _HasAttachments is false
+    */
+   uint MaxNumLayers;
+
+   /** Array of all renderbuffer attachments, indexed by BUFFER_* tokens. */
+   struct gl_renderbuffer_attachment Attachment[BUFFER_COUNT];
+   struct pipe_resource *resolve; /**< color resolve attachment */
+
+   /* In unextended OpenGL these vars are part of the GL_COLOR_BUFFER
+    * attribute group and GL_PIXEL attribute group, respectively.
+    */
+   unsigned short ColorDrawBuffer[MAX_DRAW_BUFFERS];
+   unsigned short ColorReadBuffer;
+
+   /* GL_ARB_sample_locations */
+   GLfloat *SampleLocationTable; /**< If NULL, no table has been specified */
+   bool ProgrammableSampleLocations;
+   bool SampleLocationPixelGrid;
+
+   /** Computed from ColorDraw/ReadBuffer above */
+   uint _NumColorDrawBuffers;
+   Ruda_Buffer_Index _ColorDrawBufferIndexes[MAX_DRAW_BUFFERS];
+   Ruda_Buffer_Index _ColorReadBufferIndex;
+   struct gl_renderbuffer *_ColorDrawBuffers[MAX_DRAW_BUFFERS];
+   struct gl_renderbuffer *_ColorReadBuffer;
+
+   /* GL_MESA_framebuffer_flip_y */
+   bool FlipY;
+
+   /** Delete this framebuffer */
+   void (*Delete)(struct gl_framebuffer *fb);
+
+   struct pipe_frontend_drawable *drawable;
+   enum st_attachment_type statts[ST_ATTACHMENT_COUNT];
+   unsigned num_statts;
+   int32_t stamp;
+   int32_t drawable_stamp;
+   uint32_t drawable_ID;
+
+   /* list of framebuffer objects */
+   struct list_head head;
 };

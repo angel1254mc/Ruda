@@ -44,14 +44,19 @@ int main() {
     diSetKeyCallback(window, key_callback);
 
     int* windowSize = diGetWindowSize(window);
-    
+
     while (true) {
-        
-        diDrawArrays(RUDA_TRIS, 0, tri_count);
+
+        rudaClear(RUDA_COLOR_BUFFER_BIT);
+
+        rudaDrawArrays(RUDA_TRIS, 0, tri_count);
 
     	//diDrawLine(0,0,windowSize[0],windowSize[1], 0, 255, 255);
         diPollEvents();
-    	diFlush();
+
+
+        diSwapBuffers(window);
+        //diFlush();
     }
     
     std::cin >> inputBlocking;

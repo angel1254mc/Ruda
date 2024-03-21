@@ -1,5 +1,6 @@
 #include "RudaDI/di.h"
 #include "RudaDI/di_structs.h"
+#include <X11/extensions/Xrender.h>
 #include "Util/util.h"
 
 
@@ -72,6 +73,17 @@ int* diGetWindowSize(DI_Window* window) { // returns {width, height}
 	return dimensions;
 }
 
+void diGetWindowSize(DI_Window* window, int* width, int* height) {
+	XWindowAttributes attribs;
+	XGetWindowAttributes(structure->display->xDisplay, window->xWindow, &attribs);
+	if (width)
+		*width = attribs.width;
+	if (height)
+		*height = attribs.height;
+	return;
+
+}
+
 void diSetWindowSize(DI_Window* window, int width, int height) {
 	(window->config).width = width;
 	(window->config).height = height;
@@ -85,6 +97,15 @@ void diSetWindowSize(DI_Window* window, int width, int height) {
 DI_Window::~DI_Window() {
 	XFreeGC(structure->display->xDisplay, this->context->xContext);
 }
+
+bool isVisualTransparent(Visual* visual)
+{
+    // XRender should always be available if xorg tools are
+
+    XRenderPictFormat* pf = XRenderFindVisualFormat(structure->display->xDisplay, visual);
+    return pf && pf->direct.alphaMask;
+}
+
 
 
 int DI_WindowConfig::diWindowHint(unsigned int hint, int value) {
@@ -328,4 +349,19 @@ int DI_WindowConfig::diWindowHint(unsigned int hint, int value) {
 			} else return HINT_UNCHANGED;
 	}
 	return HINT_INVALID_HINT;
+}
+
+
+void diSwapBuffers(DI_Window* window) {
+	// Make sure that window exists AND DI has been initialized
+	assert(structure != NULL);
+	assert(window != NULL);
+	
+	// glxSwapBuffers is a gallium frontend function that handles pretty much everything under the hood
+	// This includes
+	// Setting up all OSMesa wrappers around context
+	// actually swapping the front and back buffers of ruda
+	// Making sure that these changes are effected and flushed to our window, which in this case
+	// is provided by the rudaXWindow we obtained when initializing Ruda DI and thus initializing GLX
+	glXSwapBuffers(structure->display->xDisplay, (GLXDrawable)window->rudaXWindow);
 }

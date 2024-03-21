@@ -1122,7 +1122,7 @@ void rudaBufferArrayData(int size, const void *data) {
 
 
 
- // START ENABLE VERTEX ATTRIBUTE DATA //
+// START ENABLE VERTEX ATTRIBUTE DATA //
 
 
 /**
@@ -1250,3 +1250,438 @@ void rudaEnableVertexAttribArray(unsigned int index) {
 
 }
  // END ENABLE VERTEX ATTRIBUTE DATA //
+
+
+
+
+
+
+
+
+
+
+ // BEGIN VERTEX ATTRIBUTE POINTER //
+
+
+
+
+
+static void
+set_vertex_format_user(union Ruda_Vertex_Format_User* vertex_format,
+                       unsigned char size, unsigned short type, unsigned short format,
+                       bool integer,
+                       bool doubles)
+{
+   assert(size <= 4);
+   vertex_format->Type = type;
+   vertex_format->Bgra = format == RUDA_BGRA;
+   vertex_format->Size = size;
+   vertex_format->Normalized = false;
+   vertex_format->Integer = integer;
+   vertex_format->Doubles = doubles;
+}
+
+static inline int
+_mesa_bytes_per_vertex_attrib(int comps, uint type)
+{
+   /* This has comps = 3, but should return 4, so it's difficult to
+    * incorporate it into the "bytes * comps" formula below.
+    */
+   if (type == RUDA_UNSIGNED_INT_10F_11F_11F_REV)
+      return 4;
+
+   /* This is a perfect hash for the specific set of GLenums that is valid
+    * here. It injectively maps a small set of GLenums into smaller numbers
+    * that can be used for indexing into small translation tables. It has
+    * hash collisions with enums that are invalid here.
+    */
+   #define PERF_HASH_GL_VERTEX_TYPE(x) ((((x) * 17175) >> 14) & 0xf)
+
+   extern const uint8_t _mesa_vertex_type_bytes[16];
+
+   assert(PERF_HASH_GL_VERTEX_TYPE(type) < ARRAY_SIZE(_mesa_vertex_type_bytes));
+   return _mesa_vertex_type_bytes[PERF_HASH_GL_VERTEX_TYPE(type)] * comps;
+}
+
+/*
+ * Return a PIPE_FORMAT_x for the given GL datatype and size.
+*/
+static enum pipe_format
+vertex_format_to_pipe_format(unsigned char size, unsigned short type, unsigned short format,
+                             bool integer, bool doubles)
+{
+   assert(size >= 1 && size <= 4);
+   assert(format == RUDA_RGBA || format == RUDA_BGRA);
+
+   if (format == RUDA_BGRA) {
+      assert(size == 4 && !integer);
+      assert(type == RUDA_UNSIGNED_BYTE ||
+             type == RUDA_INT_2_10_10_10_REV ||
+             type == RUDA_UNSIGNED_INT_2_10_10_10_REV);
+
+      pipe_format pf = (pipe_format) bgra_vertex_formats[type & 0x3][false];
+      enum pipe_format pipe_format = pf;
+         
+      assert(pipe_format);
+      return pipe_format;
+   }
+
+   unsigned index = integer*2 + false;
+   assert(index <= 2);
+   assert((type >= RUDA_BYTE && type <= RUDA_FIXED) ||
+          type == RUDA_HALF_FLOAT_OES ||
+          type == RUDA_INT_2_10_10_10_REV ||
+          type == RUDA_UNSIGNED_INT_2_10_10_10_REV ||
+          type == RUDA_UNSIGNED_INT_10F_11F_11F_REV ||
+          (type == RUDA_UNSIGNED_INT64_ARB && doubles));
+
+   enum pipe_format pipe_format =
+      vertex_formats[(type & 0x3f) | ((int)doubles << 5)][index][size-1];
+   assert(pipe_format);
+   return pipe_format;
+}
+
+
+static void
+recompute_vertex_format_fields(struct Ruda_Vertex_Format *vertex_format,
+                               unsigned char size, unsigned short type, unsigned short format,
+                               bool integer, bool doubles)
+{
+   vertex_format->_ElementSize = _mesa_bytes_per_vertex_attrib(size, type);
+   assert(vertex_format->_ElementSize <= 4*sizeof(double));
+   vertex_format->_PipeFormat =
+      vertex_format_to_pipe_format(size, type, format, integer,
+                                   doubles);
+   /* pipe_vertex_element::src_format has only 8 bits, assuming a signed enum */
+   assert(vertex_format->_PipeFormat <= 255);
+}
+
+void
+_mesa_update_array_format(struct Ruda_Context *ctx,
+                          struct Ruda_Vertex_Array_Object *vao,
+                          Ruda_Vert_Attrib attrib, int size, uint type,
+                          uint format, bool integer, bool doubles,
+                          uint relativeOffset)
+{
+   struct Ruda_Array_Attributes *const array = &vao->VertexAttrib[attrib];
+   union Ruda_Vertex_Format_User new_format;
+
+   assert(!vao->SharedAndImmutable);
+   assert(size <= 4);
+
+   set_vertex_format_user(&new_format, size, type, format,
+                          integer, doubles);
+
+   if (array->RelativeOffset == relativeOffset &&
+       array->Format.User.All == new_format.All)
+      return;
+
+   array->RelativeOffset = relativeOffset;
+   array->Format.User = new_format;
+   recompute_vertex_format_fields(&array->Format, size, type, format,
+                                  integer, doubles);
+
+   if (vao->Enabled & VERT_BIT(attrib)) {
+      ctx->NewDriverState |= ST_NEW_VERTEX_ARRAYS;
+      ctx->Array.NewVertexElements = true;
+   }
+
+   vao->NonDefaultStateMask |= BITFIELD_BIT(attrib);
+}
+
+
+/**
+ * Sets the BufferBindingIndex field for the vertex attribute given by
+ * attribIndex.
+ */
+void
+_mesa_vertex_attrib_binding(struct Ruda_Context *ctx,
+                            struct Ruda_Vertex_Array_Object *vao,
+                            Ruda_Vert_Attrib attribIndex,
+                            uint bindingIndex)
+{
+   struct Ruda_Array_Attributes *array = &vao->VertexAttrib[attribIndex];
+   assert(!vao->SharedAndImmutable);
+
+   if (array->BufferBindingIndex != bindingIndex) {
+      const unsigned int array_bit = VERT_BIT(attribIndex);
+
+      if (vao->BufferBinding[bindingIndex].BufferObj)
+         vao->VertexAttribBufferMask |= array_bit;
+      else
+         vao->VertexAttribBufferMask &= ~array_bit;
+
+      if (vao->BufferBinding[bindingIndex].InstanceDivisor)
+         vao->NonZeroDivisorMask |= array_bit;
+      else
+         vao->NonZeroDivisorMask &= ~array_bit;
+
+      vao->BufferBinding[array->BufferBindingIndex]._BoundArrays &= ~array_bit;
+      vao->BufferBinding[bindingIndex]._BoundArrays |= array_bit;
+
+      array->BufferBindingIndex = bindingIndex;
+
+      if (vao->Enabled & array_bit) {
+         ctx->NewDriverState |= ST_NEW_VERTEX_ARRAYS;
+         ctx->Array.NewVertexElements = true;
+      }
+
+      vao->NonDefaultStateMask |= array_bit | BITFIELD_BIT(bindingIndex);
+   }
+}
+
+/**
+ * For all the vertex binding points in the array object, unbind any pointers
+ * to any buffer objects (VBOs).
+ * This is done just prior to array object destruction.
+ */
+void
+_mesa_unbind_array_object_vbos(struct Ruda_Context *ctx,
+                               struct Ruda_Vertex_Array_Object *obj)
+{
+   GLuint i;
+
+   for (i = 0; i < ARRAY_SIZE(obj->BufferBinding); i++)
+      _mesa_reference_buffer_object(ctx, &obj->BufferBinding[i].BufferObj, NULL, false);
+}
+
+
+/**
+ * Delete an array object.
+ */
+void
+_mesa_delete_vao(struct Ruda_Context *ctx, struct Ruda_Vertex_Array_Object *obj)
+{
+   _mesa_unbind_array_object_vbos(ctx, obj);
+   _mesa_reference_buffer_object(ctx, &obj->IndexBufferObj, NULL, false);
+   free(obj->Label);
+   free(obj);
+}
+
+/**
+ * Set ptr to vao w/ reference counting.
+ * Note: this should only be called from the _mesa_reference_vao()
+ * inline function.
+ */
+void
+_mesa_reference_vao_(struct Ruda_Context *ctx,
+                     struct Ruda_Vertex_Array_Object **ptr,
+                     struct Ruda_Vertex_Array_Object *vao)
+{
+   assert(*ptr != vao);
+
+   if (*ptr) {
+      /* Unreference the old array object */
+      struct Ruda_Vertex_Array_Object *oldObj = *ptr;
+
+      bool deleteFlag;
+      if (oldObj->SharedAndImmutable) {
+         deleteFlag = p_atomic_dec_zero(&oldObj->RefCount);
+      } else {
+         assert(oldObj->RefCount > 0);
+         oldObj->RefCount--;
+         deleteFlag = (oldObj->RefCount == 0);
+      }
+
+      if (deleteFlag)
+         _mesa_delete_vao(ctx, oldObj);
+
+      *ptr = NULL;
+   }
+   assert(!*ptr);
+
+   if (vao) {
+      /* reference new array object */
+      if (vao->SharedAndImmutable) {
+         p_atomic_inc(&vao->RefCount);
+      } else {
+         assert(vao->RefCount > 0);
+         vao->RefCount++;
+      }
+
+      *ptr = vao;
+   }
+}
+
+/**
+ * Set the _DrawVAO and the net enabled arrays.
+ * The vao->_Enabled bitmask is transformed due to position/generic0
+ * as stored in vao->_AttributeMapMode. Then the filter bitmask is applied
+ * to filter out arrays unwanted for the currently executed draw operation.
+ * For example, the generic attributes are masked out form the _DrawVAO's
+ * enabled arrays when a fixed function array draw is executed.
+ */
+void
+_mesa_set_draw_vao(struct Ruda_Context *ctx, struct Ruda_Vertex_Array_Object *vao)
+{
+   struct Ruda_Vertex_Array_Object **ptr = &ctx->Array._DrawVAO;
+
+   if (*ptr != vao) {
+      _mesa_reference_vao_(ctx, ptr, vao);
+      _mesa_update_edgeflag_state_vao(ctx);
+      ctx->NewDriverState |= ST_NEW_VERTEX_ARRAYS;
+      ctx->Array.NewVertexElements = true;
+   }
+}
+
+
+
+void
+_mesa_bind_vertex_buffer(struct Ruda_Context *ctx,
+                         struct Ruda_Vertex_Array_Object *vao,
+                         uint index,
+                         struct Ruda_Buffer_Object *vbo,
+                         signed long int offset, int stride,
+                         bool offset_is_int32, bool take_vbo_ownership)
+{
+   assert(index < ARRAY_SIZE(vao->BufferBinding));
+   assert(!vao->SharedAndImmutable);
+   struct gl_vertex_buffer_binding *binding = &vao->BufferBinding[index];
+
+   if (ctx->Const.VertexBufferOffsetIsInt32 && (int)offset < 0 &&
+       !offset_is_int32 && vbo) {
+      /* The offset will be interpreted as a signed int, so make sure
+       * the user supplied offset is not negative (driver limitation).
+       */
+      // _mesa_warning(ctx, "Received negative int32 vertex buffer offset. "
+		// 	 "(driver limitation)\n");
+
+      /* We can't disable this binding, so use a non-negative offset value
+       * instead.
+       */
+      offset = 0;
+   }
+
+   if (binding->BufferObj != vbo ||
+       binding->Offset != offset ||
+       binding->Stride != stride) {
+      bool stride_changed = binding->Stride != stride;
+
+      if (take_vbo_ownership) {
+         _mesa_reference_buffer_object(ctx, &binding->BufferObj, NULL, false);
+         binding->BufferObj = vbo;
+      } else {
+         _mesa_reference_buffer_object(ctx, &binding->BufferObj, vbo, false);
+      }
+
+      binding->Offset = offset;
+      binding->Stride = stride;
+
+      if (!vbo) {
+         vao->VertexAttribBufferMask &= ~binding->_BoundArrays;
+      } else {
+         vao->VertexAttribBufferMask |= binding->_BoundArrays;
+         vbo->UsageHistory = (Ruda_Buffer_Usage) (vbo->UsageHistory | USAGE_ARRAY_BUFFER);
+      }
+
+      if (vao->Enabled & binding->_BoundArrays) {
+         ctx->NewDriverState |= ST_NEW_VERTEX_ARRAYS;
+         /* Non-dynamic VAOs merge vertex buffers, which affects vertex elements.
+          * stride changes also require new vertex elements
+          */
+         if (!vao->IsDynamic || stride_changed)
+            ctx->Array.NewVertexElements = true;
+      }
+
+      vao->NonDefaultStateMask |= BITFIELD_BIT(index);
+   } else {
+      /* Since this function owns the vbo reference, it must release it if it
+       * doesn't use it.
+       */
+      if (take_vbo_ownership)
+         _mesa_reference_buffer_object(ctx, &vbo, NULL, false);
+   }
+}
+
+
+
+
+
+
+static void
+update_array(struct Ruda_Context *ctx,
+             struct Ruda_Vertex_Array_Object *vao,
+             struct Ruda_Buffer_Object *obj,
+             uint attrib, uint format,
+             int sizeMax,
+             int size, uint type, int stride,
+             bool integer, bool doubles,
+             const void *ptr)
+{
+   _mesa_update_array_format(ctx, vao, (Ruda_Vert_Attrib) attrib, size, type, format,
+                             integer, doubles, 0);
+
+   /* Reset the vertex attrib binding */
+   _mesa_vertex_attrib_binding(ctx, vao, (Ruda_Vert_Attrib) attrib, attrib);
+
+   /* The Stride and Ptr fields are not set by update_array_format() */
+   struct Ruda_Array_Attributes *array = &vao->VertexAttrib[attrib];
+   if ((array->Stride != stride) || (array->Ptr != ptr)) {
+      array->Stride = stride;
+      array->Ptr = (const unsigned char*) ptr;
+
+      if (vao->Enabled & VERT_BIT(attrib)) {
+         ctx->NewDriverState |= ST_NEW_VERTEX_ARRAYS;
+         /* Non-dynamic VAOs merge vertex buffers, which affects vertex elements. */
+         if (!vao->IsDynamic)
+            ctx->Array.NewVertexElements = true;
+      }
+
+      vao->NonDefaultStateMask |= BITFIELD_BIT(attrib);
+   }
+
+   /* Update the vertex buffer binding */
+   int effectiveStride = stride != 0 ?
+      stride : array->Format._ElementSize;
+   _mesa_bind_vertex_buffer(ctx, vao, attrib,
+                            obj, (signed long) ptr,
+                            effectiveStride, false, false);
+}
+
+
+
+
+ /**
+ * Set a generic vertex attribute array.
+ * Note that these arrays DO NOT alias the conventional GL vertex arrays
+ * (position, normal, color, fog, texcoord, etc).
+ */
+void
+_mesa_VertexAttribPointer(uint index, int size, int type, int stride, const void *ptr)
+{
+
+   Ruda_Context* ctx = structure->ctx;
+
+   uint format = RUDA_RGBA;
+
+   // if (index >= ctx->Const.Program[MESA_SHADER_VERTEX].MaxAttribs) {
+   //    _mesa_error(ctx, GL_INVALID_VALUE, "glVertexAttribPointerARB(idx)");
+   //    return;
+   // }
+   /*
+   const uint legalTypes = (BYTE_BIT | UNSIGNED_BYTE_BIT |
+                                  SHORT_BIT | UNSIGNED_SHORT_BIT |
+                                  INT_BIT | UNSIGNED_INT_BIT |
+                                  HALF_BIT | FLOAT_BIT | DOUBLE_BIT |
+                                  FIXED_ES_BIT | FIXED_GL_BIT |
+                                  UNSIGNED_INT_2_10_10_10_REV_BIT |
+                                  INT_2_10_10_10_REV_BIT |
+                                  UNSIGNED_INT_10F_11F_11F_REV_BIT);
+
+   if (!validate_array_and_format(ctx, "glVertexAttribPointer",
+                                  ctx->Array.VAO, ctx->Array.ArrayBufferObj,
+                                  VERT_ATTRIB_GENERIC(index), legalTypes,
+                                  1, BGRA_OR_4, size, type, stride,
+                                  normalized, GL_FALSE, GL_FALSE, format, ptr))
+      return;
+
+   */
+   update_array(ctx, ctx->Array.VAO, ctx->Array.ArrayBufferObj,
+                VERT_ATTRIB_GENERIC(index), format, BGRA_OR_4,
+                size, type, stride, GL_FALSE, GL_FALSE, ptr);
+}
+
+
+void rudaVertexAttribPointer(uint index, int size, int type, int stride, const void *ptr) {
+   _mesa_VertexAttribPointer(index, size, type, stride, ptr);   
+}

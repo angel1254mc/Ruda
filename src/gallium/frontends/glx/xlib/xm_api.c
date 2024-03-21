@@ -70,13 +70,12 @@
 #include "util/u_memory.h"
 
 #include "hud/hud_context.h"
-
-#include "main/errors.h"
-#include "main/mtypes.h"
+f
+#include "../../../../include/Ruda/Ruda/structs.h"
 
 #include <GL/glx.h>
 
-#include "state_tracker/st_context.h"
+#include "Ruda/state_tracker/st_context.h"
 #include "main/context.h"
 
 extern struct pipe_screen *

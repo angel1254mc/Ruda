@@ -188,8 +188,13 @@ int* diGetWindowPos(DI_Window* window);
 void diSetWindowPos(DI_Window* window, int x, int y);
 
 int* diGetWindowSize(DI_Window* window);
+void diGetWindowSize(DI_Window* window, int* width, int* height); 
 
 void diSetWindowSize(DI_Window* window, int width, int height);
+
+
+bool isVisualTransparent(Visual* visual);
+
 
 // https://github.com/glfw/glfw/blob/8f2f766f0d2ed476c03a2ae02e48ac41a9602b03/include/GLFW/glfw3.h#L3700
 

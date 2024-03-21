@@ -91,6 +91,12 @@
         "hash_table.h": "c",
         "u_idalloc.h": "c",
         "p_shader_tokens.h": "c",
-        "cstring": "cpp"
+        "cstring": "cpp",
+        "xm_api.h": "c",
+        "api.h": "c",
+        "xm_st.h": "c",
+        "structs.h": "c",
+        "errors.h": "c",
+        "st_context.h": "c"
     }
 }

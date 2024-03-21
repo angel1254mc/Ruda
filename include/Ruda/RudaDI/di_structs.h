@@ -12,6 +12,7 @@
 #include "../Ruda/structs.h"
 #include "../Util/util.h"
 #include "./di.h"
+#include "../Ruda/rudax.h"
 
 struct DI_Structure;
 struct DI_Window;
@@ -77,6 +78,23 @@ struct DI_WindowConfig {
 	bool get_scale_framebuffer() { return scale_framebuffer; };
 };
 
+struct DI_ContextConfig {
+	int           client;
+    int           source;
+    int           major;
+    int           minor;
+    bool      forward;
+    bool      debug;
+    bool      noerror;
+    int           profile;
+    int           robustness;
+    int           release;
+    DI_Window*  share;
+    struct {
+        bool  offline;
+    } nsgl;
+};
+
 struct DI_Structure {
 
 	std::vector<DI_Window*> windows;
@@ -90,7 +108,8 @@ struct DI_Structure {
 	XWindow root;
 
 	DI_WindowConfig* currentConfig;
-
+	DI_FBConfig* fbConfig;
+	DI_ContextConfig* ctxConfig;
 	int screen = -1;
 	
 	XEvent currentEvent;
@@ -100,11 +119,34 @@ struct DI_Structure {
 	
 };
 
+struct DI_FBConfig
+{
+    int         redBits;
+    int         greenBits;
+    int         blueBits;
+    int         alphaBits;
+    int         depthBits;
+    int         stencilBits;
+    int         accumRedBits;
+    int         accumGreenBits;
+    int         accumBlueBits;
+    int         accumAlphaBits;
+    int         auxBuffers;
+    bool    stereo;
+    int         samples;
+    bool    sRGB;
+    bool    doublebuffer;
+    bool    transparent;
+    uintptr_t   handle;
+};
+
 struct DI_Window {
 
 	XWindow xWindow;
+	GLXWindow* rudaXWindow;
 
 	Ruda_Context* context;
+	GLXContext* rudaXContext;
 
 	DI_WindowConfig config;
 
