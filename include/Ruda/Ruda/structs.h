@@ -12,6 +12,7 @@
 #define MAX_COMBINED_TEXTURE_IMAGE_UNITS (MAX_TEXTURE_IMAGE_UNITS * 6)
 #define MAX_IMAGE_UNIFORMS             32
 
+#define MAX_PROGRAM_ENV_PARAMS         256
 #define MAX_TEXTURE_IMAGE_UNITS 32
 #define MAX_SAMPLERS                   MAX_TEXTURE_IMAGE_UNITS
 
@@ -63,7 +64,7 @@ typedef enum
    API_OPENGLES2,
    API_OPENGL_CORE,
    API_OPENGL_LAST = API_OPENGL_CORE
-} gl_api;
+} Ruda_API;
 
 
 
@@ -74,47 +75,6 @@ typedef enum
    MAP_GLTHREAD,
    MAP_COUNT
 } Ruda_Map_Buffer_Index;
-
-typedef enum
-{
-   VERT_ATTRIB_POS,
-   VERT_ATTRIB_NORMAL,
-   VERT_ATTRIB_COLOR0,
-   VERT_ATTRIB_COLOR1,
-   VERT_ATTRIB_FOG,
-   VERT_ATTRIB_COLOR_INDEX,
-   VERT_ATTRIB_TEX0,
-   VERT_ATTRIB_TEX1,
-   VERT_ATTRIB_TEX2,
-   VERT_ATTRIB_TEX3,
-   VERT_ATTRIB_TEX4,
-   VERT_ATTRIB_TEX5,
-   VERT_ATTRIB_TEX6,
-   VERT_ATTRIB_TEX7,
-   VERT_ATTRIB_POINT_SIZE,
-   VERT_ATTRIB_GENERIC0,
-   VERT_ATTRIB_GENERIC1,
-   VERT_ATTRIB_GENERIC2,
-   VERT_ATTRIB_GENERIC3,
-   VERT_ATTRIB_GENERIC4,
-   VERT_ATTRIB_GENERIC5,
-   VERT_ATTRIB_GENERIC6,
-   VERT_ATTRIB_GENERIC7,
-   VERT_ATTRIB_GENERIC8,
-   VERT_ATTRIB_GENERIC9,
-   VERT_ATTRIB_GENERIC10,
-   VERT_ATTRIB_GENERIC11,
-   VERT_ATTRIB_GENERIC12,
-   VERT_ATTRIB_GENERIC13,
-   VERT_ATTRIB_GENERIC14,
-   VERT_ATTRIB_GENERIC15,
-   /* This must be last to keep VS inputs and vertex attributes in the same
-    * order in st/mesa, and st/mesa always adds edgeflags as the last input.
-    */
-   VERT_ATTRIB_EDGEFLAG,
-   VERT_ATTRIB_MAX
-} Ruda_Vert_Attrib;
-
 
 
 struct Ruda_Vertex_Array_Object
@@ -143,6 +103,9 @@ struct Ruda_Vertex_Array_Object
    /** Denotes the way the position/generic0 attribute is mapped */
    Ruda_Attribute_Map_Mode _AttributeMapMode;
 
+   /** "Enabled" with the position/generic0 attribute aliasing resolved */
+   unsigned int _EnabledWithMapMode;
+
 };
 
 struct gl_precision
@@ -155,6 +118,40 @@ struct gl_precision
 /**
  * Vertex array state
  */
+
+typedef enum
+{
+   VP_MODE_FF,     /**< legacy / fixed function */
+   VP_MODE_SHADER, /**< ARB vertex program or GLSL vertex shader */
+   VP_MODE_MAX     /**< for sizing arrays */
+} Ruda_Vertex_Processing_Mode;
+
+/**
+ * Current attribute group (GL_CURRENT_BIT).
+ */
+struct Ruda_Current_Attrib
+{
+   /**
+    * \name Current vertex attributes (color, texcoords, etc).
+    * \note Values are valid only after FLUSH_VERTICES has been called.
+    * \note Index and Edgeflag current values are stored as floats in the
+    * SIX and SEVEN attribute slots.
+    * \note We need double storage for 64-bit vertex attributes
+    */
+   float Attrib[VERT_ATTRIB_MAX][4*2];
+
+   /**
+    * \name Current raster position attributes (always up to date after a
+    * glRasterPos call).
+    */
+   float RasterPos[4];
+   float RasterDistance;
+   float RasterColor[4];
+   float RasterSecondaryColor[4];
+   float RasterTexCoords[MAX_TEXTURE_COORD_UNITS][4];
+   bool RasterPosValid;
+};
+
 struct Ruda_Array_Attrib
 {
    /** Currently bound array object. */
@@ -181,6 +178,17 @@ struct Ruda_Array_Attrib
     * The driver should clear this when it's done.
     */
    bool NewVertexElements;
+
+   /**
+    * Whether per-vertex edge flags are enabled and should be processed by
+    * the vertex shader.
+    */
+   bool _PerVertexEdgeFlagsEnabled;
+   /**
+    * Whether all edge flags are false, causing all points and lines generated
+    * by polygon mode to be not drawn. (i.e. culled)
+    */
+   bool _PolygonModeAlwaysCulls;
 
 };
 struct Ruda_Program_Constants
@@ -222,7 +230,7 @@ struct Ruda_Program_Constants
     * the previous stage.
     *
     * Vertex shader inputs do not participate this in this accounting.
-    * These are tracked exclusively by \c gl_program_constants::MaxAttribs.
+    * These are tracked exclusively by \c Ruda_Program_constants::MaxAttribs.
     *
     * Fragment shader outputs do not participate this in this accounting.
     * These are tracked exclusively by \c gl_constants::MaxDrawBuffers.
@@ -251,7 +259,7 @@ struct Ruda_Program_Constants
    int MaxShaderStorageBlocks;
 };
 
-struct gl_program
+struct Ruda_Program
 {
    /** FIXME: This must be first until we split shader_info from nir_shader */
    //struct shader_info info;
@@ -305,7 +313,7 @@ struct gl_program
    unsigned int ExternalSamplersUsed;
 
    /** Named parameters, constants, etc. from program text */
-   struct gl_program_parameter_list *Parameters;
+   struct Ruda_Program_parameter_list *Parameters;
 
    /** Map from sampler unit to texture unit (set by glUniform1i()) */
    unsigned char SamplerUnits[MAX_SAMPLERS];
@@ -324,7 +332,7 @@ struct gl_program
    union {
       /** Fields used by GLSL programs */
       struct {
-         /** Data shared by gl_program and gl_shader_program */
+         /** Data shared by Ruda_Program and gl_shader_program */
          struct gl_shader_program_data *data;
 
          struct gl_active_atomic_buffer **AtomicBuffers;
@@ -453,6 +461,69 @@ struct Ruda_Constants {
    struct Ruda_Program_Constants Program[MESA_SHADER_STAGES];
 };
 
+struct Ruda_Polygon_Attrib {
+   unsigned FrontFace;		/**< Either GL_CW or GL_CCW */
+   unsigned int FrontMode;		/**< Either GL_POINT, GL_LINE or GL_FILL */
+   unsigned int BackMode;		/**< Either GL_POINT, GL_LINE or GL_FILL */
+   bool CullFlag;		/**< Culling on/off flag */
+   bool SmoothFlag;	/**< True if GL_POLYGON_SMOOTH is enabled */
+   bool StippleFlag;	/**< True if GL_POLYGON_STIPPLE is enabled */
+   unsigned CullFaceMode;	/**< Culling mode GL_FRONT or GL_BACK */
+   float OffsetFactor;	/**< Polygon offset factor, from user */
+   float OffsetUnits;		/**< Polygon offset units, from user */
+   float OffsetClamp;		/**< Polygon offset clamp, from user */
+   bool OffsetPoint;	/**< Offset in GL_POINT mode */
+   bool OffsetLine;	/**< Offset in GL_LINE mode */
+   bool OffsetFill;	/**< Offset in GL_FILL mode */
+};
+
+/**
+ * Context state for vertex programs.
+ */
+struct Ruda_Vertex_Program_State
+{
+   bool Enabled;            /**< User-set GL_VERTEX_PROGRAM_ARB/NV flag */
+   bool PointSizeEnabled;   /**< GL_VERTEX_PROGRAM_POINT_SIZE_ARB/NV */
+   bool TwoSideEnabled;     /**< GL_VERTEX_PROGRAM_TWO_SIDE_ARB/NV */
+   /** Whether the fixed-func program is being used right now. */
+   bool _UsesTnlProgram;
+
+   struct Ruda_Program *Current;  /**< User-bound vertex program */
+
+   /** Currently enabled and valid vertex program (including internal
+    * programs, user-defined vertex programs and GLSL vertex shaders).
+    * This is the program we must use when rendering.
+    */
+   struct Ruda_Program *_Current;
+
+   float Parameters[MAX_PROGRAM_ENV_PARAMS][4]; /**< Env params */
+
+   /** Program to emulate fixed-function T&L (see above) */
+   struct Ruda_Program *_TnlProgram;
+
+   /** Cache of fixed-function programs */
+   struct Ruda_Program_cache *Cache;
+
+   bool _Overriden;
+
+   bool _VPModeOptimizesConstantAttribs;
+
+   /**
+    * If we have a vertex program, a TNL program or no program at all.
+    * Note that this value should be kept up to date all the time,
+    * nevertheless its correctness is asserted in _mesa_update_state.
+    * The reason is to avoid calling _mesa_update_state twice we need
+    * this value on draw *before* actually calling _mesa_update_state.
+    * Also it should need to get recomputed only on changes to the
+    * vertex program which are heavyweight already.
+    */
+   Ruda_Vertex_Processing_Mode _VPMode;
+
+   unsigned int _VaryingInputs;  /**< mask of VERT_BIT_* flags */
+   unsigned int _VPModeInputFilter;
+};
+
+
 /** The MESA_VERBOSE var is a bitmask of these flags */
 enum _verbose
 {
@@ -531,8 +602,8 @@ struct Ruda_Shared_State
     */
    /*@{*/
    struct _mesa_HashTable *Programs; /**< All vertex/fragment programs */
-   //struct gl_program *DefaultVertexProgram;
-   //struct gl_program *DefaultFragmentProgram;
+   //struct Ruda_Program *DefaultVertexProgram;
+   //struct Ruda_Program *DefaultFragmentProgram;
    /*@}*/
 
    /* GL_ATI_fragment_shader */
@@ -635,8 +706,11 @@ struct Ruda_Context {
 	
 	// binds together events + window objects
 	XC xStore;
-
+   
+   struct Ruda_Current_Attrib Current;	/**< Current attributes */
 	struct Ruda_Array_Attrib Array;	/**< Vertex arrays */
+   struct Ruda_Polygon_Attrib	Polygon;	/**< Polygon attributes */
+   struct Ruda_Vertex_Program_State VertexProgram;
 
    struct Ruda_Constants Const;
 
@@ -806,7 +880,7 @@ struct dd_function_table {
     * \name Vertex/fragment program functions
     */
    /** Allocate a new program */
-   struct gl_program * (*NewProgram)(struct gl_context *ctx,
+   struct Ruda_Program * (*NewProgram)(struct gl_context *ctx,
                                      gl_shader_stage stage,
                                      uint id, bool is_arb_asm);
    /**
@@ -938,11 +1012,11 @@ struct dd_function_table {
     */
    void (*ProgramBinarySerializeDriverBlob)(struct gl_context *ctx,
                                             struct gl_shader_program *shProg,
-                                            struct gl_program *prog);
+                                            struct Ruda_Program *prog);
 
    void (*ProgramBinaryDeserializeDriverBlob)(struct gl_context *ctx,
                                               struct gl_shader_program *shProg,
-                                              struct gl_program *prog);
+                                              struct Ruda_Program *prog);
    /*@}*/
 
    /**
@@ -950,14 +1024,14 @@ struct dd_function_table {
     */
    /*@{*/
    /**
-    * Called to initialize gl_program::driver_cache_blob (and size) with a
+    * Called to initialize Ruda_Program::driver_cache_blob (and size) with a
     * ralloc allocated buffer.
     *
-    * This buffer will be saved and restored as part of the gl_program
+    * This buffer will be saved and restored as part of the Ruda_Program
     * serialization and deserialization.
     */
    void (*ShaderCacheSerializeDriverBlob)(struct gl_context *ctx,
-                                          struct gl_program *prog);
+                                          struct Ruda_Program *prog);
    /*@}*/
 
    //bool (*ValidateEGLImage)(struct gl_context *ctx, GLeglImageOES image_handle);

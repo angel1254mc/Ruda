@@ -213,9 +213,9 @@ typedef enum
     */
    VERT_ATTRIB_EDGEFLAG,
    VERT_ATTRIB_MAX
-} gl_vert_attrib;
+} Ruda_Vert_Attrib;
 
-const char *gl_vert_attrib_name(gl_vert_attrib attrib);
+const char *gl_vert_attrib_name(Ruda_Vert_Attrib attrib);
 
 /**
  * Max number of texture coordinate units.  This mainly just applies to

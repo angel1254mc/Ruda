@@ -83,6 +83,26 @@
 #define GL_SPARSE_STORAGE_BIT_ARB         0x0400
 #define GL_SPARSE_BUFFER_PAGE_SIZE_ARB    0x82F8
 #endif
+/* Polygons */
+#define GL_POINT				0x1B00
+#define GL_LINE					0x1B01
+#define GL_FILL					0x1B02
+#define GL_CW					0x0900
+#define GL_CCW					0x0901
+#define GL_FRONT				0x0404
+#define GL_BACK					0x0405
+#define GL_POLYGON_MODE				0x0B40
+#define GL_POLYGON_SMOOTH			0x0B41
+#define GL_POLYGON_STIPPLE			0x0B42
+#define GL_EDGE_FLAG				0x0B43
+#define GL_CULL_FACE				0x0B44
+#define GL_CULL_FACE_MODE			0x0B45
+#define GL_FRONT_FACE				0x0B46
+#define GL_POLYGON_OFFSET_FACTOR		0x8038
+#define GL_POLYGON_OFFSET_UNITS			0x2A00
+#define GL_POLYGON_OFFSET_POINT			0x2A01
+#define GL_POLYGON_OFFSET_LINE			0x2A02
+#define GL_POLYGON_OFFSET_FILL			0x8037
 
 
 /**
@@ -109,3 +129,5 @@ void rudaCreateBuffer(struct Ruda_Context *ctx, uint *buffers);
 void rudaBindVBO(uint* buffer);
 
 void rudaBufferArrayData(int size, const void *data);
+
+void rudaEnableVertexAttribArray(unsigned int index);
