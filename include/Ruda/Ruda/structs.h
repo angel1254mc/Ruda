@@ -19,6 +19,11 @@
 #define VBO_MAX_PRIM 64
 #define VBO_MAX_COPIED_VERTS 31
 
+#define RUDA_TRANSFORM_FEEDBACK_VARYING     0x92F4
+#define RUDA_UNIFORM                        0x92E1
+#define GET_PROGRAM_RESOURCE_TYPE_FROM_GLENUM(x) ((x) - RUDA_UNIFORM)
+#define NUM_PROGRAM_RESOURCE_TYPES (RUDA_TRANSFORM_FEEDBACK_VARYING - RUDA_UNIFORM + 1)
+
 typedef enum
 {
    TEXTURE_2D_MULTISAMPLE_INDEX,
@@ -35,6 +40,33 @@ typedef enum
    TEXTURE_1D_INDEX,
    NUM_TEXTURE_TARGETS
 } Ruda_Texture_Index;
+
+
+/**
+ * Indexes for all renderbuffers
+ */
+typedef enum
+{
+   /* the four standard color buffers */
+   BUFFER_FRONT_LEFT,
+   BUFFER_BACK_LEFT,
+   BUFFER_FRONT_RIGHT,
+   BUFFER_BACK_RIGHT,
+   BUFFER_DEPTH,
+   BUFFER_STENCIL,
+   BUFFER_ACCUM,
+   /* generic renderbuffers */
+   BUFFER_COLOR0,
+   BUFFER_COLOR1,
+   BUFFER_COLOR2,
+   BUFFER_COLOR3,
+   BUFFER_COLOR4,
+   BUFFER_COLOR5,
+   BUFFER_COLOR6,
+   BUFFER_COLOR7,
+   BUFFER_COUNT,
+   BUFFER_NONE = -1
+} Ruda_Buffer_Index;
 
 /**
  * Enum for defining the mapping for the position/generic0 attribute.
@@ -77,7 +109,7 @@ typedef enum
    MAP_COUNT
 } Ruda_Map_Buffer_Index;
 
-struct gl_extensions
+struct Ruda_Extensions
 {
    bool EXT_vertex_array_bgra;
    bool ARB_buffer_storage;
@@ -430,7 +462,7 @@ struct Ruda_Array_Attributes
    struct Ruda_Vertex_Format Format;
    /** Stride as specified with gl*Pointer() */
    short Stride;
-   /** Index into gl_vertex_array_object::BufferBinding[] array */
+   /** Index into Ruda_Vertex_Array_Object::BufferBinding[] array */
    unsigned char BufferBindingIndex;
 
    /**
@@ -622,6 +654,64 @@ typedef enum
    VP_MODE_SHADER, /**< ARB vertex program or GLSL vertex shader */
    VP_MODE_MAX     /**< for sizing arrays */
 } Ruda_Vertex_Processing_Mode;
+
+struct Ruda_Shader_Program_Data
+{
+   int RefCount;  /**< Reference count */
+
+   /** SHA1 hash of linked shader program */
+   unsigned char sha1[20];
+
+   unsigned NumUniformStorage;
+   unsigned NumHiddenUniforms;
+   struct gl_uniform_storage *UniformStorage;
+
+   unsigned NumUniformBlocks;
+   unsigned NumShaderStorageBlocks;
+
+   struct gl_uniform_block *UniformBlocks;
+   struct gl_uniform_block *ShaderStorageBlocks;
+
+   struct gl_active_atomic_buffer *AtomicBuffers;
+   unsigned NumAtomicBuffers;
+
+   /* Shader cache variables used during restore */
+   unsigned NumUniformDataSlots;
+   union gl_constant_value *UniformDataSlots;
+
+   /* Used to hold initial uniform values for program binary restores.
+    *
+    * From the ARB_get_program_binary spec:
+    *
+    *    "A successful call to ProgramBinary will reset all uniform
+    *    variables to their initial values. The initial value is either
+    *    the value of the variable's initializer as specified in the
+    *    original shader source, or 0 if no initializer was present.
+    */
+   union gl_constant_value *UniformDataDefaults;
+
+   /** Hash for quick search by name. */
+   struct hash_table *ProgramResourceHash[NUM_PROGRAM_RESOURCE_TYPES];
+
+   bool Validated;
+
+   /** List of all active resources after linking. */
+   struct gl_program_resource *ProgramResourceList;
+   unsigned NumProgramResourceList;
+
+   enum gl_link_status LinkStatus;   /**< GL_LINK_STATUS */
+   char *InfoLog;
+
+   /* Mask of stages this program was linked against */
+   unsigned linked_stages;
+
+   /* Whether the shaders of this program are loaded from SPIR-V binaries
+    * (all have the SPIR_V_BINARY_ARB state). This was introduced by the
+    * ARB_gl_spirv extension.
+    */
+   bool spirv;
+};
+
 
 /**
  * Current attribute group (GL_CURRENT_BIT).
@@ -822,15 +912,15 @@ struct Ruda_Program
    void *serialized_nir;
    unsigned serialized_nir_size;
 
-   struct gl_shader_program *shader_program;
+   struct Ruda_Shader_Program *shader_program;
 
    struct st_variant *variants;
 
    union {
       /** Fields used by GLSL programs */
       struct {
-         /** Data shared by Ruda_Program and gl_shader_program */
-         struct gl_shader_program_data *data;
+         /** Data shared by Ruda_Program and Ruda_Shader_Program */
+         struct Ruda_Shader_Program_Data *data;
 
          struct gl_active_atomic_buffer **AtomicBuffers;
 
@@ -1053,23 +1143,23 @@ enum _verbose
 
 struct Ruda_Driver_Flags {
    /**
-    * gl_context::AtomicBufferBindings
+    * Ruda_Context::AtomicBufferBindings
     */
    uint64_t NewAtomicBuffer;
 
-   /** gl_context::Color::Alpha* */
+   /** Ruda_Context::Color::Alpha* */
    uint64_t NewAlphaTest;
 
-   /** gl_context::Multisample::Enabled */
+   /** Ruda_Context::Multisample::Enabled */
    uint64_t NewMultisampleEnable;
 
-   /** gl_context::Multisample::(Min)SampleShading */
+   /** Ruda_Context::Multisample::(Min)SampleShading */
    uint64_t NewSampleShading;
 
-   /** gl_context::Transform::ClipPlanesEnabled */
+   /** Ruda_Context::Transform::ClipPlanesEnabled */
    uint64_t NewClipPlaneEnable;
 
-   /** gl_context::Color::ClampFragmentColor */
+   /** Ruda_Context::Color::ClampFragmentColor */
    uint64_t NewFragClamp;
 
    /** Shader constants (uniforms, program parameters, state constants) */
@@ -1133,7 +1223,7 @@ struct Ruda_Shared_State
     */
    //struct set *ZombieBufferObjects;
 
-   /** Table of both gl_shader and gl_shader_program objects */
+   /** Table of both gl_shader and Ruda_Shader_Program objects */
    struct _mesa_HashTable *ShaderObjects;
 
    /* GL_EXT_framebuffer_object */
@@ -1182,7 +1272,7 @@ struct Ruda_Shared_State
    /* Global GLThread state. */
    struct {
       /* The last context that locked global mutexes. */
-      struct gl_context *LastExecutingCtx;
+      struct Ruda_Context *LastExecutingCtx;
 
       /* The last time LastExecutingCtx started executing after a different
        * context (the time of multiple active contexts).
@@ -1218,8 +1308,6 @@ struct Ruda_Context {
    struct Ruda_Current_Attrib Current;	/**< Current attributes */
 	struct Ruda_Array_Attrib Array;	/**< Vertex arrays */
    struct Ruda_Polygon_Attrib	Polygon;	/**< Polygon attributes */
-   struct Ruda_Vertex_Program_State VertexProgram;
-
    struct Ruda_Constants Const;
 
    uint64_t NewDriverState;  /**< bitwise-or of flags from DriverFlags */
@@ -1236,7 +1324,23 @@ struct Ruda_Context {
    uint64_t NewDriverState;  /**< bitwise-or of flags from DriverFlags */
 
    /** Extension information */
-   struct gl_extensions Extensions;
+   struct Ruda_Extensions Extensions;
+
+   struct Ruda_Framebuffer *DrawBuffer;	/**< buffer for writing */
+   struct Ruda_Framebuffer *ReadBuffer;	/**< buffer for reading */
+   struct Ruda_Framebuffer *WinSysDrawBuffer;  /**< set with MakeCurrent */
+   struct Ruda_Framebuffer *WinSysReadBuffer;  /**< set with MakeCurrent */
+
+
+
+   struct Ruda_Program_State Program;  /**< general program state */
+   struct Ruda_Vertex_Program_State VertexProgram;
+   struct Ruda_Fragment_Program_State FragmentProgram;
+   struct Ruda_Geometry_Program_State GeometryProgram;
+   struct Ruda_Compute_Program_State ComputeProgram;
+   struct Ruda_Tess_Ctrl_Program_State TessCtrlProgram;
+   struct Ruda_Tess_Eval_Program_State TessEvalProgram;
+   struct Ruda_Ati_Fragment_Shader_State ATIFragmentShader;
 
       /** Whether Shared->BufferObjects has already been locked for this context. */
    bool BufferObjectsLocked;
@@ -1245,11 +1349,69 @@ struct Ruda_Context {
 
    uint TextureStateTimestamp; /**< detect changes to shared state */
 
-   struct Ruda_Tess_Ctrl_Program_State TessCtrlProgram;
+      /**
+    * Current active shader pipeline state
+    *
+    * Almost all internal users want ::_Shader instead of ::Shader.  The
+    * exceptions are bits of legacy GLSL API that do not know about separate
+    * shader objects.
+    *
+    * If a program is active via \c glUseProgram, this will point to
+    * \c ::Shader.
+    *
+    * If a program pipeline is active via \c glBindProgramPipeline, this will
+    * point to \c ::Pipeline.Current.
+    *
+    * If neither a program nor a program pipeline is active, this will point to
+    * \c ::Pipeline.Default.  This ensures that \c ::_Shader will never be
+    * \c NULL.
+    */
+   struct Ruda_Pipeline_Object *_Shader;
 
 	Ruda_Context(XGC xContext) {this->xContext = xContext;};
 
 };
+
+
+/**
+ * Context state for GLSL vertex/fragment shaders.
+ * Extended to support pipeline object
+ */
+struct Ruda_Pipeline_Object
+{
+   /** Name of the pipeline object as received from glGenProgramPipelines.
+    * It would be 0 for shaders without separate shader objects.
+    */
+   uint Name;
+
+   int RefCount;
+
+   char *Label;   /**< GL_KHR_debug */
+
+   /**
+    * Programs used for rendering
+    *
+    * There is a separate program set for each shader stage.
+    */
+   struct Ruda_Program *CurrentProgram[MESA_SHADER_STAGES];
+
+   struct Ruda_Shader_Program *ReferencedPrograms[MESA_SHADER_STAGES];
+
+   /**
+    * Program used by glUniform calls.
+    *
+    * Explicitly set by \c glUseProgram and \c glActiveProgramEXT.
+    */
+   struct Ruda_Shader_Program *ActiveProgram;
+
+   uint Flags;         /**< Mask of GLSL_x flags */
+   bool EverBound;      /**< Has the pipeline object been created */
+   bool Validated;      /**< Pipeline Validation status */
+   bool UserValidated;  /**< Validation status initiated by the user */
+
+   char *InfoLog;
+};
+
 
 typedef enum
 {
@@ -1400,7 +1562,7 @@ struct dd_function_table {
     * \name Vertex/fragment program functions
     */
    /** Allocate a new program */
-   struct Ruda_Program * (*NewProgram)(struct gl_context *ctx,
+   struct Ruda_Program * (*NewProgram)(struct Ruda_Context *ctx,
                                      gl_shader_stage stage,
                                      uint id, bool is_arb_asm);
    /**
@@ -1442,7 +1604,7 @@ struct dd_function_table {
     * - info->max_index (if index_bounds_valid is false)
     * - info->drawid (if increment_draw_id is true)
     */
-   void (*DrawGallium)(struct gl_context *ctx,
+   void (*DrawGallium)(struct Ruda_Context *ctx,
                        struct pipe_draw_info *info,
                        unsigned drawid_offset,
                        const struct pipe_draw_start_count_bias *draws,
@@ -1457,13 +1619,13 @@ struct dd_function_table {
     *
     * This function exists to decrease complexity of DrawGallium.
     */
-   void (*DrawGalliumMultiMode)(struct gl_context *ctx,
+   void (*DrawGalliumMultiMode)(struct Ruda_Context *ctx,
                                 struct pipe_draw_info *info,
                                 const struct pipe_draw_start_count_bias *draws,
                                 const unsigned char *mode,
                                 unsigned num_draws);
 
-   void (*DrawGalliumVertexState)(struct gl_context *ctx,
+   void (*DrawGalliumVertexState)(struct Ruda_Context *ctx,
                                   struct pipe_vertex_state *state,
                                   struct pipe_draw_vertex_state_info info,
                                   const struct pipe_draw_start_count_bias *draws,
@@ -1472,9 +1634,9 @@ struct dd_function_table {
    /*@}*/
 
    struct pipe_vertex_state *
-      (*CreateGalliumVertexState)(struct gl_context *ctx,
-                                  const struct gl_vertex_array_object *vao,
-                                  struct gl_buffer_object *indexbuf,
+      (*CreateGalliumVertexState)(struct Ruda_Context *ctx,
+                                  const struct Ruda_Vertex_Array_Object *vao,
+                                  struct Ruda_Buffer_Object *indexbuf,
                                   uint32_t enabled_attribs);
 
    /**
@@ -1501,7 +1663,7 @@ struct dd_function_table {
 #define FLUSH_UPDATE_CURRENT  0x2
    /**
     * Set by the driver-supplied T&L engine whenever vertices are buffered
-    * between glBegin()/glEnd() objects or __struct gl_contextRec::Current
+    * between glBegin()/glEnd() objects or __struct Ruda_ContextRec::Current
     * is not updated.  A bitmask of the FLUSH_x values above.
     *
     * The dd_function_table::FlushVertices call below may be used to resolve
@@ -1521,7 +1683,7 @@ struct dd_function_table {
     * non-zero value once after a reset.  If a reset is non-atomic, the
     * non-zero status should be returned for the duration of the reset.
     */
-   int (*GetGraphicsResetStatus)(struct gl_context *ctx);
+   int (*GetGraphicsResetStatus)(struct Ruda_Context *ctx);
 
    /**
     * \name GL_ARB_get_program_binary
@@ -1530,12 +1692,12 @@ struct dd_function_table {
    /**
     * Calls to retrieve/store a binary serialized copy of the current program.
     */
-   void (*ProgramBinarySerializeDriverBlob)(struct gl_context *ctx,
-                                            struct gl_shader_program *shProg,
+   void (*ProgramBinarySerializeDriverBlob)(struct Ruda_Context *ctx,
+                                            struct Ruda_Shader_Program *shProg,
                                             struct Ruda_Program *prog);
 
-   void (*ProgramBinaryDeserializeDriverBlob)(struct gl_context *ctx,
-                                              struct gl_shader_program *shProg,
+   void (*ProgramBinaryDeserializeDriverBlob)(struct Ruda_Context *ctx,
+                                              struct Ruda_Shader_Program *shProg,
                                               struct Ruda_Program *prog);
    /*@}*/
 
@@ -1550,11 +1712,11 @@ struct dd_function_table {
     * This buffer will be saved and restored as part of the Ruda_Program
     * serialization and deserialization.
     */
-   void (*ShaderCacheSerializeDriverBlob)(struct gl_context *ctx,
+   void (*ShaderCacheSerializeDriverBlob)(struct Ruda_Context *ctx,
                                           struct Ruda_Program *prog);
    /*@}*/
 
-   //bool (*ValidateEGLImage)(struct gl_context *ctx, GLeglImageOES image_handle);
+   //bool (*ValidateEGLImage)(struct Ruda_Context *ctx, GLeglImageOES image_handle);
 };
 
 struct vbo_exec_context
@@ -1563,7 +1725,7 @@ struct vbo_exec_context
       /* Multi draw where the mode can vary between draws. */
       struct pipe_draw_info info;
       struct pipe_draw_start_count_bias draw[VBO_MAX_PRIM];
-      GLubyte mode[VBO_MAX_PRIM];            /**< primitive modes per draw */
+      unsigned char mode[VBO_MAX_PRIM];            /**< primitive modes per draw */
       struct vbo_markers markers[VBO_MAX_PRIM];
       unsigned prim_count;
 
@@ -1730,7 +1892,7 @@ struct vbo_save_context {
    unsigned char attrsz[VBO_ATTRIB_MAX];  /**< 1, 2, 3 or 4 */
    unsigned short attrtype[VBO_ATTRIB_MAX];  /**< GL_FLOAT, GL_INT, etc */
    unsigned char active_sz[VBO_ATTRIB_MAX];  /**< 1, 2, 3 or 4 */
-   uint vertex_size;  /**< size in GLfloats */
+   uint vertex_size;  /**< size in floats */
    struct Ruda_Vertex_Array_Object *VAO[VP_MODE_MAX];
 
    struct vbo_save_vertex_store *vertex_store;
@@ -1819,9 +1981,9 @@ struct Ruda_Framebuffer
     * polygon face orientation, and polygon stipple will have to be inverted.
     */
    uint Name;
-   GLint RefCount;
+   int RefCount;
 
-   GLchar *Label;       /**< GL_KHR_debug */
+   char *Label;       /**< GL_KHR_debug */
 
    bool DeletePending;
 
@@ -1863,11 +2025,11 @@ struct Ruda_Framebuffer
    /** \name  Derived Z buffer stuff */
    /*@{*/
    uint _DepthMax;	/**< Max depth buffer value */
-   GLfloat _DepthMaxF;	/**< Float max depth buffer value */
-   GLfloat _MRD;	/**< minimum resolvable difference in Z values */
+   float _DepthMaxF;	/**< Float max depth buffer value */
+   float _MRD;	/**< minimum resolvable difference in Z values */
    /*@}*/
 
-   /** One of the GL_FRAMEBUFFER_(IN)COMPLETE_* tokens */
+   /** One of the Ruda_Framebuffer_(IN)COMPLETE_* tokens */
    unsigned short _Status;
 
    /** Whether one of Attachment has Type != GL_NONE
@@ -1905,7 +2067,7 @@ struct Ruda_Framebuffer
    uint MaxNumLayers;
 
    /** Array of all renderbuffer attachments, indexed by BUFFER_* tokens. */
-   struct gl_renderbuffer_attachment Attachment[BUFFER_COUNT];
+   struct Ruda_Renderbuffer_Attachment Attachment[BUFFER_COUNT];
    struct pipe_resource *resolve; /**< color resolve attachment */
 
    /* In unextended OpenGL these vars are part of the GL_COLOR_BUFFER
@@ -1915,7 +2077,7 @@ struct Ruda_Framebuffer
    unsigned short ColorReadBuffer;
 
    /* GL_ARB_sample_locations */
-   GLfloat *SampleLocationTable; /**< If NULL, no table has been specified */
+   float *SampleLocationTable; /**< If NULL, no table has been specified */
    bool ProgrammableSampleLocations;
    bool SampleLocationPixelGrid;
 
@@ -1923,14 +2085,14 @@ struct Ruda_Framebuffer
    uint _NumColorDrawBuffers;
    Ruda_Buffer_Index _ColorDrawBufferIndexes[MAX_DRAW_BUFFERS];
    Ruda_Buffer_Index _ColorReadBufferIndex;
-   struct gl_renderbuffer *_ColorDrawBuffers[MAX_DRAW_BUFFERS];
-   struct gl_renderbuffer *_ColorReadBuffer;
+   struct Ruda_Renderbuffer *_ColorDrawBuffers[MAX_DRAW_BUFFERS];
+   struct Ruda_Renderbuffer *_ColorReadBuffer;
 
    /* GL_MESA_framebuffer_flip_y */
    bool FlipY;
 
    /** Delete this framebuffer */
-   void (*Delete)(struct gl_framebuffer *fb);
+   void (*Delete)(struct Ruda_Framebuffer *fb);
 
    struct pipe_frontend_drawable *drawable;
    enum st_attachment_type statts[ST_ATTACHMENT_COUNT];
@@ -1941,4 +2103,510 @@ struct Ruda_Framebuffer
 
    /* list of framebuffer objects */
    struct list_head head;
+};
+
+/**
+ * Framebuffer configuration (aka visual / pixelformat)
+ * Note: some of these fields should be boolean, but it appears that
+ * code in drivers/dri/common/util.c requires int-sized fields.
+ */
+struct Ruda_Config
+{
+   bool floatMode;
+   uint doubleBufferMode;
+   uint stereoMode;
+
+   int redBits, greenBits, blueBits, alphaBits;	/* bits per comp */
+   uint redMask, greenMask, blueMask, alphaMask;
+   int redShift, greenShift, blueShift, alphaShift;
+   int rgbBits;		/* total bits for rgb */
+
+   int accumRedBits, accumGreenBits, accumBlueBits, accumAlphaBits;
+   int depthBits;
+   int stencilBits;
+
+   /* ARB_multisample / SGIS_multisample */
+   uint samples;
+
+   /* EXT_framebuffer_sRGB */
+   int sRGBCapable;
+};
+
+
+/**
+ * A renderbuffer attachment points to either a texture object (and specifies
+ * a mipmap level, cube face or 3D texture slice) or points to a renderbuffer.
+ */
+struct Ruda_Renderbuffer_Attachment
+{
+   unsigned short Type; /**< \c GL_NONE or \c GL_TEXTURE or \c GL_RENDERBUFFER_EXT */
+   bool Complete;
+
+   /**
+    * If \c Type is \c GL_RENDERBUFFER_EXT, this stores a pointer to the
+    * application supplied renderbuffer object.
+    */
+   struct Ruda_Renderbuffer *Renderbuffer;
+
+   /**
+    * If \c Type is \c GL_TEXTURE, this stores a pointer to the application
+    * supplied texture object.
+    */
+   struct Ruda_Texture_Object *Texture;
+   uint TextureLevel; /**< Attached mipmap level. */
+   int NumSamples;  /**< from FramebufferTexture2DMultisampleEXT */
+   uint CubeMapFace;  /**< 0 .. 5, for cube map textures. */
+   uint Zoffset;      /**< Slice for 3D textures,  or layer for both 1D
+                         * and 2D array textures */
+   bool Layered;
+};
+
+/**
+ * Renderbuffers represent drawing surfaces such as color, depth and/or
+ * stencil.  A framebuffer object has a set of renderbuffers.
+ * Drivers will typically derive subclasses of this type.
+ */
+struct Ruda_Renderbuffer
+{
+   uint ClassID;        /**< Useful for drivers */
+   uint Name;
+   char *Label;         /**< GL_KHR_debug */
+   int RefCount;
+   uint Width, Height;
+   uint Depth;
+   bool AttachedAnytime; /**< TRUE if it was attached to a framebuffer */
+   unsigned char NumSamples;    /**< zero means not multisampled */
+   unsigned char NumStorageSamples; /**< for AMD_framebuffer_multisample_advanced */
+   unsigned short InternalFormat; /**< The user-specified format */
+   unsigned short _BaseFormat;    /**< Either GL_RGB, GL_RGBA, GL_DEPTH_COMPONENT or
+                               GL_STENCIL_INDEX. */
+   Ruda_Format Format;      /**< The actual renderbuffer memory format */
+   /**
+    * Pointer to the texture image if this renderbuffer wraps a texture,
+    * otherwise NULL.
+    *
+    * Note that the reference on the gl_texture_object containing this
+    * TexImage is held by the gl_renderbuffer_attachment.
+    */
+   struct gl_texture_image *TexImage;
+
+   /** Delete this renderbuffer */
+   void (*Delete)(struct Ruda_Context *ctx, struct Ruda_Renderbuffer *rb);
+
+   /** Allocate new storage for this renderbuffer */
+   bool (*AllocStorage)(struct Ruda_Context *ctx,
+                             struct Ruda_Renderbuffer *rb,
+                             uint internalFormat,
+                             uint width, uint height);
+
+   struct pipe_resource *texture;
+   /* This points to either "surface_linear" or "surface_srgb".
+    * It doesn't hold the pipe_surface reference. The other two do.
+    */
+   struct pipe_surface *surface;
+   struct pipe_surface *surface_linear;
+   struct pipe_surface *surface_srgb;
+   bool defined;        /**< defined contents? */
+
+   struct pipe_transfer *transfer; /**< only used when mapping the resource */
+
+   /**
+    * Used only when hardware accumulation buffers are not supported.
+    */
+   bool software;
+   void *data;
+
+   bool use_readpix_cache;
+
+   /* Inputs from Driver.RenderTexture, don't use directly. */
+   bool is_rtt; /**< whether Driver.RenderTexture was called */
+   unsigned rtt_face, rtt_slice;
+   bool rtt_layered; /**< whether glFramebufferTexture was called */
+   unsigned rtt_nr_samples; /**< from FramebufferTexture2DMultisampleEXT */
+};
+
+/**
+ * Mesa texture/renderbuffer image formats.  These are just other names of the
+ * util/format/u_formats.h formats.
+ */
+typedef enum pipe_format Ruda_Format;
+
+struct list_head
+{
+    struct list_head *prev;
+    struct list_head *next;
+};
+
+/**
+ * Available attachments of framebuffer.
+ */
+enum st_attachment_type {
+   ST_ATTACHMENT_FRONT_LEFT,
+   ST_ATTACHMENT_BACK_LEFT,
+   ST_ATTACHMENT_FRONT_RIGHT,
+   ST_ATTACHMENT_BACK_RIGHT,
+   ST_ATTACHMENT_DEPTH_STENCIL,
+   ST_ATTACHMENT_ACCUM,
+
+   ST_ATTACHMENT_COUNT,
+   ST_ATTACHMENT_INVALID = -1
+};
+
+/**
+ * State common to vertex and fragment programs.
+ */
+struct Ruda_Program_State
+{
+   int ErrorPos;                       /* GL_PROGRAM_ERROR_POSITION_ARB/NV */
+   const char *ErrorString;              /* GL_PROGRAM_ERROR_STRING_ARB/NV */
+};
+
+
+/**
+ * Context state for fragment programs.
+ */
+struct Ruda_Fragment_Program_State
+{
+   bool Enabled;     /**< User-set fragment program enable flag */
+   /** Whether the fixed-func program is being used right now. */
+   bool _UsesTexEnvProgram;
+
+   struct Ruda_Program *Current;  /**< User-bound fragment program */
+
+   /**
+    * Currently enabled and valid fragment program (including internal
+    * programs, user-defined fragment programs and GLSL fragment shaders).
+    * This is the program we must use when rendering.
+    */
+   struct Ruda_Program *_Current;
+
+   float Parameters[MAX_PROGRAM_ENV_PARAMS][4]; /**< Env params */
+
+   /** Program to emulate fixed-function texture env/combine (see above) */
+   struct Ruda_Program *_TexEnvProgram;
+
+   /** Cache of fixed-function programs */
+   struct Ruda_Program_Cache *Cache;
+};
+
+struct cache_item
+{
+   uint hash;
+   unsigned keysize;
+   void *key;
+   struct Ruda_Program *program;
+   struct cache_item *next;
+};
+
+struct Ruda_Program_Cache
+{
+   struct cache_item **items;
+   struct cache_item *last;
+   uint size, n_items;
+};
+
+
+/**
+ * Context state for tessellation evaluation programs.
+ */
+struct Ruda_Tess_Eval_Program_State
+{
+   /** Currently bound and valid shader. */
+   struct Ruda_Program *_Current;
+};
+
+/**
+ * Context state for geometry programs.
+ */
+struct Ruda_Geometry_Program_State
+{
+   /**
+    * Currently enabled and valid program (including internal programs
+    * and compiled shader programs).
+    */
+   struct Ruda_Program *_Current;
+};
+
+
+/**
+ * Context state for compute programs.
+ */
+struct Ruda_Compute_Program_State
+{
+   /** Currently enabled and valid program (including internal programs
+    * and compiled shader programs).
+    */
+   struct Ruda_Program *_Current;
+};
+
+
+/**
+ * ATI fragment shader
+ */
+struct ati_fragment_shader
+{
+   uint Id;
+   int RefCount;
+   struct atifs_instruction *Instructions[2];
+   struct atifs_setupinst *SetupInst[2];
+   float Constants[8][4];
+   uint LocalConstDef;  /**< Indicates which constants have been set */
+   unsigned char numArithInstr[2];
+   unsigned char regsAssigned[2];
+   unsigned char NumPasses;         /**< 1 or 2 */
+   /**
+    * Current compile stage: 0 setup pass1, 1 arith pass1,
+    * 2 setup pass2, 3 arith pass2.
+    */
+   unsigned char cur_pass;
+   unsigned char last_optype;
+   bool interpinp1;
+   bool isValid;
+   /**
+    * Array of 2 bit values for each tex unit to remember whether
+    * STR or STQ swizzle was used
+    */
+   uint swizzlerq;
+   struct Ruda_Program *Program;
+};
+
+/**
+ * Context state for GL_ATI_fragment_shader
+ */
+struct Ruda_Ati_Fragment_Shader_State
+{
+   bool Enabled;
+   bool Compiling;
+   float GlobalConstants[8][4];
+   struct ati_fragment_shader *Current;
+};
+
+/* two opcodes - one for color/one for alpha */
+/* up to three source registers for most ops */
+struct atifs_instruction
+{
+   uint Opcode[2];
+   uint ArgCount[2];
+   struct atifragshader_src_register SrcReg[2][3];
+   struct atifragshader_dst_register DstReg[2];
+};
+
+/* different from arithmetic shader instruction */
+struct atifs_setupinst
+{
+   uint Opcode;
+   uint src;
+   uint swizzle;
+};
+
+struct atifragshader_src_register
+{
+   uint Index;
+   uint argRep;
+   uint argMod;
+};
+
+struct atifragshader_dst_register
+{
+   uint Index;
+   uint dstMod;
+   uint dstMask;
+};
+
+
+
+struct gl_uniform_block
+{
+   /** Declared name of the uniform block */
+   struct gl_resource_name name;
+
+   /** Array of supplemental information about UBO ir_variables. */
+   struct gl_uniform_buffer_variable *Uniforms;
+   uint NumUniforms;
+
+   /**
+    * Index (GL_UNIFORM_BLOCK_BINDING) into ctx->UniformBufferBindings[] to use
+    * with glBindBufferBase to bind a buffer object to this uniform block.
+    */
+   uint Binding;
+
+   /**
+    * Minimum size (in bytes) of a buffer object to back this uniform buffer
+    * (GL_UNIFORM_BLOCK_DATA_SIZE).
+    */
+   uint UniformBufferSize;
+
+   /** Stages that reference this block */
+   uint8_t stageref;
+
+   /**
+    * Linearized array index for uniform block instance arrays
+    *
+    * Given a uniform block instance array declared with size
+    * blk[s_0][s_1]..[s_m], the block referenced by blk[i_0][i_1]..[i_m] will
+    * have the linearized array index
+    *
+    *           m-1       m
+    *     i_m + ∑   i_j * ∏     s_k
+    *           j=0       k=j+1
+    *
+    * For a uniform block instance that is not an array, this is always 0.
+    */
+   uint8_t linearized_array_index;
+
+   /**
+    * Layout specified in the shader
+    *
+    * This isn't accessible through the API, but it is used while
+    * cross-validating uniform blocks.
+    */
+   enum glsl_interface_packing _Packing;
+   bool _RowMajor;
+};
+
+/**
+ * Link status enum. LINKING_SKIPPED is used to indicate linking
+ * was skipped due to the shader being loaded from the on-disk cache.
+ */
+enum gl_link_status
+{
+   LINKING_FAILURE = 0,
+   LINKING_SUCCESS,
+   LINKING_SKIPPED
+};
+
+struct gl_resource_name
+{
+   char *string;
+   int length;              /* strlen(string) or 0 */
+   int last_square_bracket; /* (strrchr(name, '[') - name) or -1 */
+   bool suffix_is_zero_square_bracketed; /* suffix is [0] */
+};
+
+
+struct gl_uniform_storage {
+   struct gl_resource_name name;
+
+   /** Type of this uniform data stored.
+    *
+    * In the case of an array, it's the type of a single array element.
+    */
+   const struct glsl_type *type;
+
+   /**
+    * The number of elements in this uniform.
+    *
+    * For non-arrays, this is always 0.  For arrays, the value is the size of
+    * the array.
+    */
+   unsigned array_elements;
+
+   struct gl_opaque_uniform_index opaque[MESA_SHADER_STAGES];
+
+   /**
+    * Mask of shader stages (1 << MESA_SHADER_xxx) where this uniform is used.
+    */
+   unsigned active_shader_mask;
+
+   /**
+    * Storage used by the driver for the uniform
+    */
+   unsigned num_driver_storage;
+   struct gl_uniform_driver_storage *driver_storage;
+
+   /**
+    * Storage used by Mesa for the uniform
+    *
+    * This form of the uniform is used by Mesa's implementation of \c
+    * glGetUniform.  It can also be used by drivers to obtain the value of the
+    * uniform if the \c ::driver_storage interface is not used.
+    */
+   union gl_constant_value *storage;
+
+   /** Fields for GL_ARB_uniform_buffer_object
+    * @{
+    */
+
+   /**
+    * GL_UNIFORM_BLOCK_INDEX: index of the uniform block containing
+    * the uniform, or -1 for the default uniform block.  Note that the
+    * index is into the linked program's UniformBlocks[] array, not
+    * the linked shader's.
+    */
+   int block_index;
+
+   /** GL_UNIFORM_OFFSET: byte offset within the uniform block, or -1. */
+   int offset;
+
+   /**
+    * GL_UNIFORM_MATRIX_STRIDE: byte stride between columns or rows of
+    * a matrix.  Set to 0 for non-matrices in UBOs, or -1 for uniforms
+    * in the default uniform block.
+    */
+   int matrix_stride;
+
+   /**
+    * GL_UNIFORM_ARRAY_STRIDE: byte stride between elements of the
+    * array.  Set to zero for non-arrays in UBOs, or -1 for uniforms
+    * in the default uniform block.
+    */
+   int array_stride;
+
+   /** GL_UNIFORM_ROW_MAJOR: true iff it's a row-major matrix in a UBO */
+   bool row_major;
+
+   /** @} */
+
+   /**
+    * This is a compiler-generated uniform that should not be advertised
+    * via the API.
+    */
+   bool hidden;
+
+   /**
+    * This is a built-in uniform that should not be modified through any gl API.
+    */
+   bool builtin;
+
+   /**
+    * This is a shader storage buffer variable, not an uniform.
+    */
+   bool is_shader_storage;
+
+   /**
+    * Index within gl_shader_program::AtomicBuffers[] of the atomic
+    * counter buffer this uniform is stored in, or -1 if this is not
+    * an atomic counter.
+    */
+   int atomic_buffer_index;
+
+   /**
+    * The 'base location' for this uniform in the uniform remap table. For
+    * arrays this is the first element in the array.
+    * for subroutines this is in shader subroutine uniform remap table.
+    */
+   unsigned remap_location;
+
+   /**
+    * The number of compatible subroutines with this subroutine uniform.
+    */
+   unsigned num_compatible_subroutines;
+
+   /**
+    * A single integer identifying the number of active array elements of
+    * the top-level shader storage block member (GL_TOP_LEVEL_ARRAY_SIZE).
+    */
+   unsigned top_level_array_size;
+
+   /**
+    * A single integer identifying the stride between array elements of the
+    * top-level shader storage block member. (GL_TOP_LEVEL_ARRAY_STRIDE).
+    */
+   unsigned top_level_array_stride;
+
+   /**
+    * Whether this uniform variable has the bindless_sampler or bindless_image
+    * layout qualifier as specified by ARB_bindless_texture.
+    */
+   bool is_bindless;
 };

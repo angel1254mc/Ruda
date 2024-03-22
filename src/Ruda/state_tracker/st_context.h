@@ -123,7 +123,7 @@ struct st_zombie_shader_node
 
 struct st_context
 {
-   struct gl_context *ctx;
+   struct Ruda_Context *ctx;
    struct pipe_screen *screen;
    struct pipe_context *pipe;
    struct cso_context *cso_context;

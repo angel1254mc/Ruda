@@ -210,37 +210,37 @@
  * \name Bits to indicate what state has changed.
  */
 /*@{*/
-#define _NEW_MODELVIEW         (1u << 0)   /**< gl_context::ModelView */
-#define _NEW_PROJECTION        (1u << 1)   /**< gl_context::Projection */
-#define _NEW_TEXTURE_MATRIX    (1u << 2)   /**< gl_context::TextureMatrix */
-#define _NEW_COLOR             (1u << 3)   /**< gl_context::Color */
-#define _NEW_DEPTH             (1u << 4)   /**< gl_context::Depth */
+#define _NEW_MODELVIEW         (1u << 0)   /**< RUDA_context::ModelView */
+#define _NEW_PROJECTION        (1u << 1)   /**< RUDA_context::Projection */
+#define _NEW_TEXTURE_MATRIX    (1u << 2)   /**< RUDA_context::TextureMatrix */
+#define _NEW_COLOR             (1u << 3)   /**< RUDA_context::Color */
+#define _NEW_DEPTH             (1u << 4)   /**< RUDA_context::Depth */
 #define _NEW_TNL_SPACES        (1u << 5)  /**< _mesa_update_tnl_spaces */
-#define _NEW_FOG               (1u << 6)   /**< gl_context::Fog */
-#define _NEW_HINT              (1u << 7)   /**< gl_context::Hint */
-#define _NEW_LIGHT_CONSTANTS   (1u << 8)   /**< gl_context::Light */
-#define _NEW_LINE              (1u << 9)   /**< gl_context::Line */
-#define _NEW_PIXEL             (1u << 10)  /**< gl_context::Pixel */
-#define _NEW_POINT             (1u << 11)  /**< gl_context::Point */
-#define _NEW_POLYGON           (1u << 12)  /**< gl_context::Polygon */
-#define _NEW_POLYGONSTIPPLE    (1u << 13)  /**< gl_context::PolygonStipple */
-#define _NEW_SCISSOR           (1u << 14)  /**< gl_context::Scissor */
-#define _NEW_STENCIL           (1u << 15)  /**< gl_context::Stencil */
-#define _NEW_TEXTURE_OBJECT    (1u << 16)  /**< gl_context::Texture (bindings only) */
-#define _NEW_TRANSFORM         (1u << 17)  /**< gl_context::Transform */
-#define _NEW_VIEWPORT          (1u << 18)  /**< gl_context::Viewport */
-#define _NEW_TEXTURE_STATE     (1u << 19)  /**< gl_context::Texture (states only) */
-#define _NEW_LIGHT_STATE       (1u << 20)  /**< gl_context::Light */
-#define _NEW_RENDERMODE        (1u << 21)  /**< gl_context::RenderMode, etc */
-#define _NEW_BUFFERS           (1u << 22)  /**< gl_context::Visual, DrawBuffer, */
-#define _NEW_CURRENT_ATTRIB    (1u << 23)  /**< gl_context::Current */
-#define _NEW_MULTISAMPLE       (1u << 24)  /**< gl_context::Multisample */
-#define _NEW_TRACK_MATRIX      (1u << 25)  /**< gl_context::VertexProgram */
+#define _NEW_FOG               (1u << 6)   /**< RUDA_context::Fog */
+#define _NEW_HINT              (1u << 7)   /**< RUDA_context::Hint */
+#define _NEW_LIGHT_CONSTANTS   (1u << 8)   /**< RUDA_context::Light */
+#define _NEW_LINE              (1u << 9)   /**< RUDA_context::Line */
+#define _NEW_PIXEL             (1u << 10)  /**< RUDA_context::Pixel */
+#define _NEW_POINT             (1u << 11)  /**< RUDA_context::Point */
+#define _NEW_POLYGON           (1u << 12)  /**< RUDA_context::Polygon */
+#define _NEW_POLYGONSTIPPLE    (1u << 13)  /**< RUDA_context::PolygonStipple */
+#define _NEW_SCISSOR           (1u << 14)  /**< RUDA_context::Scissor */
+#define _NEW_STENCIL           (1u << 15)  /**< RUDA_context::Stencil */
+#define _NEW_TEXTURE_OBJECT    (1u << 16)  /**< RUDA_context::Texture (bindings only) */
+#define _NEW_TRANSFORM         (1u << 17)  /**< RUDA_context::Transform */
+#define _NEW_VIEWPORT          (1u << 18)  /**< RUDA_context::Viewport */
+#define _NEW_TEXTURE_STATE     (1u << 19)  /**< RUDA_context::Texture (states only) */
+#define _NEW_LIGHT_STATE       (1u << 20)  /**< RUDA_context::Light */
+#define _NEW_RENDERMODE        (1u << 21)  /**< RUDA_context::RenderMode, etc */
+#define _NEW_BUFFERS           (1u << 22)  /**< RUDA_context::Visual, DrawBuffer, */
+#define _NEW_CURRENT_ATTRIB    (1u << 23)  /**< RUDA_context::Current */
+#define _NEW_MULTISAMPLE       (1u << 24)  /**< RUDA_context::Multisample */
+#define _NEW_TRACK_MATRIX      (1u << 25)  /**< RUDA_context::VertexProgram */
 #define _NEW_PROGRAM           (1u << 26)  /**< New program/shader state */
 #define _NEW_PROGRAM_CONSTANTS (1u << 27)
 #define _NEW_FF_VERT_PROGRAM   (1u << 28)
 #define _NEW_FRAG_CLAMP        (1u << 29)
-#define _NEW_MATERIAL          (1u << 30)  /**< gl_context::Light.Material */
+#define _NEW_MATERIAL          (1u << 30)  /**< RUDA_context::Light.Material */
 #define _NEW_FF_FRAG_PROGRAM   (1u << 31)
 #define _NEW_ALL ~0
 /*@}*/
@@ -269,6 +269,129 @@
 #define RUDA_SCISSOR_BIT				0x00080000
 #define RUDA_ALL_ATTRIB_BITS			0xFFFFFFFF
 
+#ifndef RUDA_NV_fragment_program
+#define RUDA_NV_fragment_program 1
+#define RUDA_MAX_FRAGMENT_PROGRAM_LOCAL_PARAMETERS_NV 0x8868
+#define RUDA_FRAGMENT_PROGRAM_NV            0x8870
+#define RUDA_MAX_TEXTURE_COORDS_NV          0x8871
+#define RUDA_MAX_TEXTURE_IMAGE_UNITS_NV     0x8872
+#define RUDA_FRAGMENT_PROGRAM_BINDING_NV    0x8873
+#define RUDA_PROGRAM_ERROR_STRING_NV        0x8874
+#endif
+
+#ifndef RUDA_NV_geometry_program4
+#define RUDA_NV_geometry_program4 1
+#define RUDA_GEOMETRY_PROGRAM_NV            0x8C26
+#define RUDA_MAX_PROGRAM_OUTPUT_VERTICES_NV 0x8C27
+#define RUDA_MAX_PROGRAM_TOTAL_OUTPUT_COMPONENTS_NV 0x8C28
+#endif
+
+#define RUDA_TRANSFORM_FEEDBACK_VARYING     0x92F4
+#define RUDA_UNIFORM                        0x92E1
+#define GET_PROGRAM_RESOURCE_TYPE_FROM_GLENUM(x) ((x) - RUDA_UNIFORM)
+#define NUM_PROGRAM_RESOURCE_TYPES (RUDA_TRANSFORM_FEEDBACK_VARYING - RUDA_UNIFORM + 1)
+
+#ifndef RUDA_ARB_fragment_program
+#define RUDA_ARB_fragment_program 1
+#define RUDA_FRAGMENT_PROGRAM_ARB           0x8804
+#define RUDA_PROGRAM_FORMAT_ASCII_ARB       0x8875
+#define RUDA_PROGRAM_LENGTH_ARB             0x8627
+#define RUDA_PROGRAM_FORMAT_ARB             0x8876
+#define RUDA_PROGRAM_BINDING_ARB            0x8677
+#define RUDA_PROGRAM_INSTRUCTIONS_ARB       0x88A0
+#define RUDA_MAX_PROGRAM_INSTRUCTIONS_ARB   0x88A1
+#define RUDA_PROGRAM_NATIVE_INSTRUCTIONS_ARB 0x88A2
+#define RUDA_MAX_PROGRAM_NATIVE_INSTRUCTIONS_ARB 0x88A3
+#define RUDA_PROGRAM_TEMPORARIES_ARB        0x88A4
+#define RUDA_MAX_PROGRAM_TEMPORARIES_ARB    0x88A5
+#define RUDA_PROGRAM_NATIVE_TEMPORARIES_ARB 0x88A6
+#define RUDA_MAX_PROGRAM_NATIVE_TEMPORARIES_ARB 0x88A7
+#define RUDA_PROGRAM_PARAMETERS_ARB         0x88A8
+#define RUDA_MAX_PROGRAM_PARAMETERS_ARB     0x88A9
+#define RUDA_PROGRAM_NATIVE_PARAMETERS_ARB  0x88AA
+#define RUDA_MAX_PROGRAM_NATIVE_PARAMETERS_ARB 0x88AB
+#define RUDA_PROGRAM_ATTRIBS_ARB            0x88AC
+#define RUDA_MAX_PROGRAM_ATTRIBS_ARB        0x88AD
+#define RUDA_PROGRAM_NATIVE_ATTRIBS_ARB     0x88AE
+#define RUDA_MAX_PROGRAM_NATIVE_ATTRIBS_ARB 0x88AF
+#define RUDA_MAX_PROGRAM_LOCAL_PARAMETERS_ARB 0x88B4
+#define RUDA_MAX_PROGRAM_ENV_PARAMETERS_ARB 0x88B5
+#define RUDA_PROGRAM_UNDER_NATIVE_LIMITS_ARB 0x88B6
+#define RUDA_PROGRAM_ALU_INSTRUCTIONS_ARB   0x8805
+#define RUDA_PROGRAM_TEX_INSTRUCTIONS_ARB   0x8806
+#define RUDA_PROGRAM_TEX_INDIRECTIONS_ARB   0x8807
+#define RUDA_PROGRAM_NATIVE_ALU_INSTRUCTIONS_ARB 0x8808
+#define RUDA_PROGRAM_NATIVE_TEX_INSTRUCTIONS_ARB 0x8809
+#define RUDA_PROGRAM_NATIVE_TEX_INDIRECTIONS_ARB 0x880A
+#define RUDA_MAX_PROGRAM_ALU_INSTRUCTIONS_ARB 0x880B
+#define RUDA_MAX_PROGRAM_TEX_INSTRUCTIONS_ARB 0x880C
+#define RUDA_MAX_PROGRAM_TEX_INDIRECTIONS_ARB 0x880D
+#define RUDA_MAX_PROGRAM_NATIVE_ALU_INSTRUCTIONS_ARB 0x880E
+#define RUDA_MAX_PROGRAM_NATIVE_TEX_INSTRUCTIONS_ARB 0x880F
+#define RUDA_MAX_PROGRAM_NATIVE_TEX_INDIRECTIONS_ARB 0x8810
+#define RUDA_PROGRAM_STRING_ARB             0x8628
+#define RUDA_PROGRAM_ERROR_POSITION_ARB     0x864B
+#define RUDA_CURRENT_MATRIX_ARB             0x8641
+#define RUDA_TRANSPOSE_CURRENT_MATRIX_ARB   0x88B7
+#define RUDA_CURRENT_MATRIX_STACK_DEPTH_ARB 0x8640
+#define RUDA_MAX_PROGRAM_MATRICES_ARB       0x862F
+#define RUDA_MAX_PROGRAM_MATRIX_STACK_DEPTH_ARB 0x862E
+#define RUDA_MAX_TEXTURE_COORDS_ARB         0x8871
+#define RUDA_MAX_TEXTURE_IMAGE_UNITS_ARB    0x8872
+#define RUDA_PROGRAM_ERROR_STRING_ARB       0x8874
+#define RUDA_MATRIX0_ARB                    0x88C0
+#define RUDA_MATRIX1_ARB                    0x88C1
+#define RUDA_MATRIX2_ARB                    0x88C2
+#define RUDA_MATRIX3_ARB                    0x88C3
+#define RUDA_MATRIX4_ARB                    0x88C4
+#define RUDA_MATRIX5_ARB                    0x88C5
+#define RUDA_MATRIX6_ARB                    0x88C6
+#define RUDA_MATRIX7_ARB                    0x88C7
+#define RUDA_MATRIX8_ARB                    0x88C8
+#define RUDA_MATRIX9_ARB                    0x88C9
+#define RUDA_MATRIX10_ARB                   0x88CA
+#define RUDA_MATRIX11_ARB                   0x88CB
+#define RUDA_MATRIX12_ARB                   0x88CC
+#define RUDA_MATRIX13_ARB                   0x88CD
+#define RUDA_MATRIX14_ARB                   0x88CE
+#define RUDA_MATRIX15_ARB                   0x88CF
+#define RUDA_MATRIX16_ARB                   0x88D0
+#define RUDA_MATRIX17_ARB                   0x88D1
+#define RUDA_MATRIX18_ARB                   0x88D2
+#define RUDA_MATRIX19_ARB                   0x88D3
+#define RUDA_MATRIX20_ARB                   0x88D4
+#define RUDA_MATRIX21_ARB                   0x88D5
+#define RUDA_MATRIX22_ARB                   0x88D6
+#define RUDA_MATRIX23_ARB                   0x88D7
+#define RUDA_MATRIX24_ARB                   0x88D8
+#define RUDA_MATRIX25_ARB                   0x88D9
+#define RUDA_MATRIX26_ARB                   0x88DA
+#define RUDA_MATRIX27_ARB                   0x88DB
+#define RUDA_MATRIX28_ARB                   0x88DC
+#define RUDA_MATRIX29_ARB                   0x88DD
+#define RUDA_MATRIX30_ARB                   0x88DE
+#define RUDA_MATRIX31_ARB                   0x88DF
+#endif
+
+#ifndef RUDA_ARB_vertex_program
+#define RUDA_ARB_vertex_program 1
+#define RUDA_COLOR_SUM_ARB                  0x8458
+#define RUDA_VERTEX_PROGRAM_ARB             0x8620
+#define RUDA_VERTEX_ATTRIB_ARRAY_ENABLED_ARB 0x8622
+#define RUDA_VERTEX_ATTRIB_ARRAY_SIZE_ARB   0x8623
+#define RUDA_VERTEX_ATTRIB_ARRAY_STRIDE_ARB 0x8624
+#define RUDA_VERTEX_ATTRIB_ARRAY_TYPE_ARB   0x8625
+#define RUDA_CURRENT_VERTEX_ATTRIB_ARB      0x8626
+#define RUDA_VERTEX_PROGRAM_POINT_SIZE_ARB  0x8642
+#define RUDA_VERTEX_PROGRAM_TWO_SIDE_ARB    0x8643
+#define RUDA_VERTEX_ATTRIB_ARRAY_POINTER_ARB 0x8645
+#define RUDA_MAX_VERTEX_ATTRIBS_ARB         0x8869
+#define RUDA_VERTEX_ATTRIB_ARRAY_NORMALIZED_ARB 0x886A
+#define RUDA_PROGRAM_ADDRESS_REGISTERS_ARB  0x88B0
+#define RUDA_MAX_PROGRAM_ADDRESS_REGISTERS_ARB 0x88B1
+#define RUDA_PROGRAM_NATIVE_ADDRESS_REGISTERS_ARB 0x88B2
+#define RUDA_MAX_PROGRAM_NATIVE_ADDRESS_REGISTERS_ARB 0x88B3
+#endif
 // ------------------------------- BUFFER_OBJECT.CPP ------------------------------- //
 
 void rudaGenBuffer(uint *buffers);
@@ -292,3 +415,8 @@ static inline bool _mesa_hw_select_enabled(const struct Ruda_Context *ctx);
 
 static inline void update_attribute_map_mode(const struct Ruda_Context *ctx, struct Ruda_Vertex_Array_Object *vao);
 
+void _mesa_update_state( struct Ruda_Context *ctx );
+
+void _mesa_update_framebuffer(struct Ruda_Context *ctx, struct Ruda_Framebuffer *readFb, struct Ruda_Framebuffer *drawFb);
+
+void _mesa_reference_shader_program_data(struct Ruda_Shader_Program_Data **ptr, struct Ruda_Shader_Program_Data *data);
