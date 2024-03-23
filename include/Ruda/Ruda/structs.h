@@ -5,6 +5,7 @@
 #include <threads.h>
 #include "../src/util/u_idalloc.h"
 #include "../src/compiler/shader_enums.h"
+#include "../src/gallium/include/pipe/p_state.h"
 //#include "util/glheader.h"
 // Abstracts the Graphics Context struct from X11 to XGC to avoid ambiguity
 #define XGC GC
@@ -23,6 +24,43 @@
 #define RUDA_UNIFORM                        0x92E1
 #define GET_PROGRAM_RESOURCE_TYPE_FROM_GLENUM(x) ((x) - RUDA_UNIFORM)
 #define NUM_PROGRAM_RESOURCE_TYPES (RUDA_TRANSFORM_FEEDBACK_VARYING - RUDA_UNIFORM + 1)
+
+#define RUDA_FRAMEBUFFER_COMPLETE_EXT       0x8CD5
+#define RUDA_INVALID_FRAMEBUFFER_OPERATION  0x0506
+
+#define BUFFER_BIT_FRONT_LEFT   (1 << BUFFER_FRONT_LEFT)
+#define BUFFER_BIT_BACK_LEFT    (1 << BUFFER_BACK_LEFT)
+#define BUFFER_BIT_FRONT_RIGHT  (1 << BUFFER_FRONT_RIGHT)
+#define BUFFER_BIT_BACK_RIGHT   (1 << BUFFER_BACK_RIGHT)
+#define BUFFER_BIT_DEPTH        (1 << BUFFER_DEPTH)
+#define BUFFER_BIT_STENCIL      (1 << BUFFER_STENCIL)
+#define BUFFER_BIT_ACCUM        (1 << BUFFER_ACCUM)
+#define BUFFER_BIT_COLOR0       (1 << BUFFER_COLOR0)
+#define BUFFER_BIT_COLOR1       (1 << BUFFER_COLOR1)
+#define BUFFER_BIT_COLOR2       (1 << BUFFER_COLOR2)
+#define BUFFER_BIT_COLOR3       (1 << BUFFER_COLOR3)
+#define BUFFER_BIT_COLOR4       (1 << BUFFER_COLOR4)
+#define BUFFER_BIT_COLOR5       (1 << BUFFER_COLOR5)
+#define BUFFER_BIT_COLOR6       (1 << BUFFER_COLOR6)
+#define BUFFER_BIT_COLOR7       (1 << BUFFER_COLOR7)
+
+/**
+
+/**
+ * Mask of all the color buffer bits (but not accum).
+ */
+#define BUFFER_BITS_COLOR  (BUFFER_BIT_FRONT_LEFT | \
+                            BUFFER_BIT_BACK_LEFT | \
+                            BUFFER_BIT_FRONT_RIGHT | \
+                            BUFFER_BIT_BACK_RIGHT | \
+                            BUFFER_BIT_COLOR0 | \
+                            BUFFER_BIT_COLOR1 | \
+                            BUFFER_BIT_COLOR2 | \
+                            BUFFER_BIT_COLOR3 | \
+                            BUFFER_BIT_COLOR4 | \
+                            BUFFER_BIT_COLOR5 | \
+                            BUFFER_BIT_COLOR6 | \
+                            BUFFER_BIT_COLOR7)
 
 typedef enum
 {
@@ -778,6 +816,7 @@ struct Ruda_Array_Attrib
    bool _PolygonModeAlwaysCulls;
 
 };
+
 struct Ruda_Program_Constants
 {
    /* logical limits */
@@ -906,6 +945,7 @@ struct Ruda_Program
    unsigned char SamplerUnits[MAX_SAMPLERS];
 
    struct pipe_shader_state state;
+
    struct ati_fragment_shader *ati_fs;
    uint64_t affected_states; /**< ST_NEW_* flags to mark dirty when binding */
 
@@ -1044,6 +1084,11 @@ struct Ruda_Program
    };
 };
 
+/**
+ * A pointer to this dummy program is put into the hash table when
+ * glGenPrograms is called.
+ */
+struct Ruda_Program Ruda_DummyProgram;
 
 
 
@@ -1056,6 +1101,14 @@ struct Ruda_Constants {
 
       /** GL_ARB_vertex_attrib_binding */
    int MaxVertexAttribRelativeOffset;
+
+   unsigned glBeginEndBufferSize;
+
+   /** Override GL_MAP_UNSYNCHRONIZED_BIT */
+   bool ForceMapBufferSynchronized;
+
+   /** Buffer size used to upload vertices from glBegin/glEnd. */
+   unsigned glBeginEndBufferSize;
 
 };
 
@@ -1295,6 +1348,7 @@ struct Ruda_Context {
 
 	/** Whether Shared->BufferObjects has already been locked for this context. */
 	bool BufferObjectsLocked;
+   bool RasterDiscard;
 
 	XGC xContext;
 
@@ -2481,6 +2535,26 @@ struct gl_resource_name
    int length;              /* strlen(string) or 0 */
    int last_square_bracket; /* (strrchr(name, '[') - name) or -1 */
    bool suffix_is_zero_square_bracketed; /* suffix is [0] */
+};
+
+struct gl_opaque_uniform_index {
+   /**
+    * Base opaque uniform index
+    *
+    * If \c gl_uniform_storage::base_type is an opaque type, this
+    * represents its uniform index.  If \c
+    * gl_uniform_storage::array_elements is not zero, the array will
+    * use opaque uniform indices \c index through \c index + \c
+    * gl_uniform_storage::array_elements - 1, inclusive.
+    *
+    * Note that the index may be different in each shader stage.
+    */
+   uint8_t index;
+
+   /**
+    * Whether this opaque uniform is used in this shader stage.
+    */
+   bool active;
 };
 
 

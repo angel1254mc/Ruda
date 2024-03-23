@@ -1,10 +1,14 @@
 #include "Ruda/ruda.h"
 #include "../src/util/ralloc.h"
-
+#include "Ruda/state_tracker.cpp"
+#include "Ruda/structs.h"
 /**
  * Delete a program and remove it from the hash table, ignoring the
  * reference count.
  */
+
+
+
 void
 _mesa_delete_program(struct Ruda_Context *ctx, struct Ruda_Program *prog)
 {
@@ -16,12 +20,12 @@ _mesa_delete_program(struct Ruda_Context *ctx, struct Ruda_Program *prog)
 
    free(prog->serialized_nir);
 
-   if (prog == &_mesa_DummyProgram)
+   if (prog == &Ruda_DummyProgram)
       return;
 
-   if (prog->Parameters) {
-      _mesa_free_parameter_list(prog->Parameters);
-   }
+   //if (prog->Parameters) {
+   //   _mesa_free_parameter_list(prog->Parameters);
+   //}
 
    if (prog->nir) {
       ralloc_free(prog->nir);

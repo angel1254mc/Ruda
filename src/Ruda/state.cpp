@@ -1,4 +1,5 @@
 #include "Ruda/ruda.h"
+#include "program.cpp"
 
 void
 _mesa_lock_context_textures( struct Ruda_Context *ctx )
@@ -27,6 +28,53 @@ _mesa_lock_context_textures( struct Ruda_Context *ctx )
  * \return bitfield which will indicate _NEW_PROGRAM state if a new vertex
  * or fragment program is being used.
  */
+
+/**
+ * Return a fragment program which implements the current
+ * fixed-function texture, fog and color-sum operations.
+ */
+struct gl_program *
+_mesa_get_fixed_func_fragment_program(struct gl_context *ctx)
+{
+   struct gl_program *prog;
+   struct state_key key;
+   GLuint keySize;
+
+   keySize = make_state_key(ctx, &key);
+
+   prog = (struct gl_program *)
+      _mesa_search_program_cache(ctx->FragmentProgram.Cache,
+                                 &key, keySize);
+
+   if (!prog) {
+      prog = ctx->Driver.NewProgram(ctx, MESA_SHADER_FRAGMENT, 0, false);
+      if (!prog)
+         return NULL;
+
+      const struct nir_shader_compiler_options *options =
+         st_get_nir_compiler_options(ctx->st, MESA_SHADER_FRAGMENT);
+
+      nir_shader *s =
+         create_new_program(&key, prog, options);
+
+      prog->state.type = PIPE_SHADER_IR_NIR;
+      prog->nir = s;
+
+      prog->SamplersUsed = s->info.samplers_used[0];
+
+      /* default mapping from samplers to texture units */
+      for (unsigned i = 0; i < MAX_SAMPLERS; i++)
+         prog->SamplerUnits[i] = i;
+
+      st_program_string_notify(ctx, GL_FRAGMENT_PROGRAM_ARB, prog);
+
+      _mesa_program_cache_insert(ctx, ctx->FragmentProgram.Cache,
+                                 &key, keySize, prog);
+   }
+
+   return prog;
+}
+
 
 static uint
 update_program(struct Ruda_Context *ctx)

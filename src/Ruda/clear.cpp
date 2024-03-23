@@ -3,6 +3,10 @@
 #include <string.h>
 #include "../src/Ruda/state_tracker/st_atom_list.h"
 #include "buffer_object.cpp"
+#include "../util/u_math.h"
+#include "macros.h"
+#include "state_tracker/st_context.h"
+#include "state_tracker.cpp"
 
 static inline struct vbo_context *
 vbo_context(struct Ruda_Context *ctx)
@@ -31,6 +35,165 @@ vbo_context(struct Ruda_Context *ctx)
 #else
 #define FALLTHROUGH do { } while(0)
 #endif
+
+/**
+ * Compute the max number of vertices which can be stored in
+ * a vertex buffer, given the current vertex size, and the amount
+ * of space already used.
+ */
+static inline unsigned
+vbo_compute_max_verts(const struct vbo_exec_context *exec)
+{
+   unsigned n = (ruda_context_from_vbo_exec_const(exec)->Const.glBeginEndBufferSize -
+                 exec->vtx.buffer_used) /
+                (exec->vtx.vertex_size * sizeof(GLfloat));
+   if (n == 0)
+      return 0;
+   /* Subtract one so we're always sure to have room for an extra
+    * vertex for GL_LINE_LOOP -> GL_LINE_STRIP conversion.
+    */
+   n--;
+   return n;
+}
+
+void
+_mesa_set_vertex_format(struct Ruda_Vertex_Format *vertex_format,
+                        GLubyte size, unsigned short type, unsigned short format,
+                        bool normalized, bool integer,
+                        bool doubles)
+{
+   set_vertex_format_user(&vertex_format->User, size, type, format,
+                          integer, doubles);
+   recompute_vertex_format_fields(vertex_format, size, type, format,
+                                 integer, doubles);
+}
+
+static inline void
+vbo_set_vertex_format(struct Ruda_Vertex_Format* vertex_format,
+                      GLubyte size, unsigned short type)
+{
+   _mesa_set_vertex_format(vertex_format, size, type, GL_RGBA, GL_FALSE,
+                           vbo_attrtype_to_integer_flag(type),
+                           vbo_attrtype_to_double_flag(type));
+}
+
+
+/** Copy \p sz elements into a homegeneous (4-element) vector, giving
+ * default values to the remaining components.
+ * The default values are chosen based on \p type.
+ */
+static inline void
+COPY_CLEAN_4V_TYPE_AS_UNION(fi_type dst[4], int sz, const fi_type src[4],
+                            GLenum type)
+{
+   switch (type) {
+   case GL_FLOAT:
+      ASSIGN_4V(dst, FLOAT_AS_UNION(0), FLOAT_AS_UNION(0),
+                FLOAT_AS_UNION(0), FLOAT_AS_UNION(1));
+      break;
+   case GL_INT:
+      ASSIGN_4V(dst, INT_AS_UNION(0), INT_AS_UNION(0),
+                INT_AS_UNION(0), INT_AS_UNION(1));
+      break;
+   case GL_UNSIGNED_INT:
+      ASSIGN_4V(dst, UINT_AS_UNION(0), UINT_AS_UNION(0),
+                UINT_AS_UNION(0), UINT_AS_UNION(1));
+      break;
+   default:
+      ASSIGN_4V(dst, FLOAT_AS_UNION(0), FLOAT_AS_UNION(0),
+                FLOAT_AS_UNION(0), FLOAT_AS_UNION(1)); /* silence warnings */
+      assert(!"Unexpected type in COPY_CLEAN_4V_TYPE_AS_UNION macro");
+   }
+   COPY_SZ_4V(dst, sz, src);
+}
+
+
+/**
+ * Copy the active vertex's values to the ctx->Current fields.
+ */
+static void
+vbo_exec_copy_to_current(struct vbo_exec_context *exec)
+{
+   struct Ruda_Context *ctx = ruda_context_from_vbo_exec(exec);
+   struct vbo_context *vbo = vbo_context(ctx);
+   uint64_t enabled = exec->vtx.enabled & (~BITFIELD64_BIT(VBO_ATTRIB_POS));
+   bool color0_changed = false;
+
+   while (enabled) {
+      const int i = u_bit_scan64(&enabled);
+
+      /* Note: the exec->vtx.current[i] pointers point into the
+       * ctx->Current.Attrib and ctx->Light.Material.Attrib arrays.
+       */
+      GLfloat *current = (GLfloat *)vbo->current[i].Ptr;
+      fi_type tmp[8]; /* space for doubles */
+      int dmul_shift = 0;
+
+      assert(exec->vtx.attr[i].size);
+
+      /* VBO_ATTRIB_SELECT_RESULT_INDEX has no current */
+      if (!current)
+         continue;
+
+      if (exec->vtx.attr[i].type == GL_DOUBLE ||
+          exec->vtx.attr[i].type == GL_UNSIGNED_INT64_ARB) {
+         memset(tmp, 0, sizeof(tmp));
+         memcpy(tmp, exec->vtx.attrptr[i], exec->vtx.attr[i].size * sizeof(GLfloat));
+         dmul_shift = 1;
+      } else {
+         COPY_CLEAN_4V_TYPE_AS_UNION(tmp,
+                                     exec->vtx.attr[i].size,
+                                     exec->vtx.attrptr[i],
+                                     exec->vtx.attr[i].type);
+      }
+
+      if (memcmp(current, tmp, 4 * sizeof(GLfloat) << dmul_shift) != 0) {
+         memcpy(current, tmp, 4 * sizeof(GLfloat) << dmul_shift);
+
+         if (i == VBO_ATTRIB_COLOR0)
+            color0_changed = true;
+
+         if (i >= VBO_ATTRIB_MAT_FRONT_AMBIENT) {
+            ctx->NewState |= _NEW_MATERIAL;
+            ctx->PopAttribState |= GL_LIGHTING_BIT;
+
+            /* The fixed-func vertex program uses this. */
+            if (i == VBO_ATTRIB_MAT_FRONT_SHININESS ||
+                i == VBO_ATTRIB_MAT_BACK_SHININESS)
+               ctx->NewState |= _NEW_FF_VERT_PROGRAM;
+         } else {
+            if (i == VBO_ATTRIB_EDGEFLAG)
+               _mesa_update_edgeflag_state_vao(ctx);
+
+            ctx->NewState |= _NEW_CURRENT_ATTRIB;
+            ctx->PopAttribState |= GL_CURRENT_BIT;
+         }
+      }
+
+      /* Given that we explicitly state size here, there is no need
+       * for the COPY_CLEAN above, could just copy 16 bytes and be
+       * done.  The only problem is when Mesa accesses ctx->Current
+       * directly.
+       */
+      /* Size here is in components - not bytes */
+      if (exec->vtx.attr[i].type != vbo->current[i].Format.User.Type ||
+          (exec->vtx.attr[i].size >> dmul_shift) != vbo->current[i].Format.User.Size) {
+         vbo_set_vertex_format(&vbo->current[i].Format,
+                               exec->vtx.attr[i].size >> dmul_shift,
+                               exec->vtx.attr[i].type);
+         /* The format changed. We need to update gallium vertex elements.
+          * Material attributes don't need this because they don't have formats.
+          */
+         if (i <= VBO_ATTRIB_EDGEFLAG)
+            ctx->NewState |= _NEW_CURRENT_ATTRIB;
+      }
+   }
+
+   //if (color0_changed && ctx->Light.ColorMaterialEnabled) {
+   //   _mesa_update_color_material(ctx,
+   //                               ctx->Current.Attrib[VBO_ATTRIB_COLOR0]);
+   //}
+}
 
 
 /**
@@ -142,6 +305,32 @@ vbo_copy_vertices(struct Ruda_Context *ctx,
           copy * vertex_size * sizeof(GLfloat));
    return copy;
 }
+
+static inline const struct Ruda_Context *
+ruda_context_from_vbo_exec_const(const struct vbo_exec_context *exec)
+{
+   return container_of(exec, struct Ruda_Context, vbo_context.exec);
+}
+
+
+static GLuint
+vbo_exec_copy_vertices(struct vbo_exec_context *exec)
+{
+   struct Ruda_Context *ctx = ruda_context_from_vbo_exec(exec);
+   const GLuint sz = exec->vtx.vertex_size;
+   fi_type *dst = exec->vtx.copied.buffer;
+   unsigned last = exec->vtx.prim_count - 1;
+   unsigned start = exec->vtx.draw[last].start;
+   const fi_type *src = exec->vtx.buffer_map + start * sz;
+
+   return vbo_copy_vertices(ctx, ctx->Driver.CurrentExecPrimitive,
+                            start,
+                            &exec->vtx.draw[last].count,
+                            exec->vtx.markers[last].begin,
+                            sz, false, dst, src);
+}
+
+
 
 static inline struct Ruda_Context *
 ruda_context_from_vbo_exec(struct vbo_exec_context *exec)
@@ -450,6 +639,26 @@ _vbo_set_attrib_format(struct Ruda_Context *ctx,
    vao->VertexAttrib[attr].Ptr = ADD_POINTERS(buffer_offset, offset);
 }
 
+
+void
+_mesa_restore_draw_vao(struct Ruda_Context *ctx,
+                       struct Ruda_Vertex_Array_Object *saved,
+                       GLbitfield saved_vp_input_filter)
+{
+   /* Restoare states. */
+   _mesa_reference_vao(ctx, &ctx->Array._DrawVAO, NULL);
+   ctx->Array._DrawVAO = saved;
+   ctx->VertexProgram._VPModeInputFilter = saved_vp_input_filter;
+
+   /* Update states. */
+   ctx->NewDriverState |= ST_NEW_VERTEX_ARRAYS;
+   ctx->Array.NewVertexElements = true;
+
+   /* Restore original states. */
+   _mesa_update_edgeflag_state_vao(ctx);
+}
+
+
 void
 _mesa_save_and_set_draw_vao(struct Ruda_Context *ctx,
                             struct Ruda_Vertex_Array_Object *vao,
@@ -574,7 +783,300 @@ vbo_exec_bind_arrays(struct Ruda_Context *ctx,
    _mesa_set_varying_vp_inputs(ctx, vao_filter &
                                ctx->Array._DrawVAO->_EnabledWithMapMode);
 }
-// true facts
+
+static inline struct Ruda_Context *
+gl_context_from_vbo_exec(struct vbo_exec_context *exec)
+{
+   return container_of(exec, struct Ruda_Context, vbo_context.exec);
+}
+
+void
+_mesa_bufferobj_flush_mapped_range(struct Ruda_Context *ctx,
+                                   GLintptr offset, GLsizeiptr length,
+                                   struct Ruda_Buffer_Object *obj,
+                                   Ruda_Map_Buffer_Index index)
+{
+   struct pipe_context *pipe = ctx->pipe;
+
+   /* Subrange is relative to mapped range */
+   assert(offset >= 0);
+   assert(length >= 0);
+   assert(offset + length <= obj->Mappings[index].Length);
+   assert(obj->Mappings[index].Pointer);
+
+   if (!length)
+      return;
+
+   pipe_buffer_flush_mapped_range(pipe, obj->transfer[index],
+                                  obj->Mappings[index].Offset + offset,
+                                  length);
+}
+
+/**
+ * Unmap the VBO.  This is called before drawing.
+ */
+static void
+vbo_exec_vtx_unmap(struct vbo_exec_context *exec)
+{
+   if (exec->vtx.bufferobj) {
+      struct Ruda_Context *ctx = gl_context_from_vbo_exec(exec);
+
+      if (!ctx->Extensions.ARB_buffer_storage) {
+         GLintptr offset = exec->vtx.buffer_used -
+                           exec->vtx.bufferobj->Mappings[MAP_INTERNAL].Offset;
+         GLsizeiptr length = (exec->vtx.buffer_ptr - exec->vtx.buffer_map) *
+                             sizeof(float);
+
+         if (length)
+            _mesa_bufferobj_flush_mapped_range(ctx, offset, length,
+                                               exec->vtx.bufferobj,
+                                               MAP_INTERNAL);
+      }
+
+      exec->vtx.buffer_used += (exec->vtx.buffer_ptr -
+                                exec->vtx.buffer_map) * sizeof(float);
+
+      assert(exec->vtx.buffer_used <= ctx->Const.glBeginEndBufferSize);
+      assert(exec->vtx.buffer_ptr != NULL);
+
+      _mesa_bufferobj_unmap(ctx, exec->vtx.bufferobj, MAP_INTERNAL);
+      exec->vtx.buffer_map = NULL;
+      exec->vtx.buffer_ptr = NULL;
+      exec->vtx.max_vert = 0;
+   }
+}
+
+static bool
+vbo_exec_buffer_has_space(struct vbo_exec_context *exec)
+{
+   struct Ruda_Context *ctx = gl_context_from_vbo_exec(exec);
+
+   return ctx->Const.glBeginEndBufferSize > exec->vtx.buffer_used + 1024;
+}
+
+/**
+ * Convert GLbitfield of GL_MAP_x flags to gallium pipe_map_flags flags.
+ * \param wholeBuffer  is the whole buffer being mapped?
+ */
+enum pipe_map_flags
+_mesa_access_flags_to_transfer_flags(GLbitfield access, bool wholeBuffer)
+{
+   int flags = 0;
+
+   if (access & GL_MAP_WRITE_BIT)
+      flags |= PIPE_MAP_WRITE;
+
+   if (access & GL_MAP_READ_BIT)
+      flags |= PIPE_MAP_READ;
+
+   if (access & GL_MAP_FLUSH_EXPLICIT_BIT)
+      flags |= PIPE_MAP_FLUSH_EXPLICIT;
+
+   if (access & GL_MAP_INVALIDATE_BUFFER_BIT) {
+      flags |= PIPE_MAP_DISCARD_WHOLE_RESOURCE;
+   }
+   else if (access & GL_MAP_INVALIDATE_RANGE_BIT) {
+      if (wholeBuffer)
+         flags |= PIPE_MAP_DISCARD_WHOLE_RESOURCE;
+      else
+         flags |= PIPE_MAP_DISCARD_RANGE;
+   }
+
+   if (access & GL_MAP_UNSYNCHRONIZED_BIT)
+      flags |= PIPE_MAP_UNSYNCHRONIZED;
+
+   if (access & GL_MAP_PERSISTENT_BIT)
+      flags |= PIPE_MAP_PERSISTENT;
+
+   if (access & GL_MAP_COHERENT_BIT)
+      flags |= PIPE_MAP_COHERENT;
+
+   /* ... other flags ...
+   */
+
+   if (access & MESA_MAP_NOWAIT_BIT)
+      flags |= PIPE_MAP_DONTBLOCK;
+   if (access & MESA_MAP_THREAD_SAFE_BIT)
+      flags |= PIPE_MAP_THREAD_SAFE;
+   if (access & MESA_MAP_ONCE)
+      flags |= PIPE_MAP_ONCE;
+
+   return (pipe_map_flags)flags;
+}
+
+
+/**
+ * Called via glMapBufferRange().
+ */
+void *
+_mesa_bufferobj_map_range(struct Ruda_Context *ctx,
+                           GLintptr offset, GLsizeiptr length, GLbitfield access,
+                           struct Ruda_Buffer_Object *obj,
+                           Ruda_Map_Buffer_Index index)
+{
+   struct pipe_context *pipe = ctx->pipe;
+
+   assert(offset >= 0);
+   assert(length >= 0);
+   assert(offset < obj->Size);
+   assert(offset + length <= obj->Size);
+
+   enum pipe_map_flags transfer_flags =
+      _mesa_access_flags_to_transfer_flags(access,
+                                           offset == 0 && length == obj->Size);
+   int map_flags = transfer_flags;
+   if (ctx->Const.ForceMapBufferSynchronized)
+      map_flags &= ~PIPE_MAP_UNSYNCHRONIZED;
+   transfer_flags = (pipe_map_flags)map_flags;
+
+   obj->Mappings[index].Pointer = pipe_buffer_map_range(pipe,
+                                                        obj->buffer,
+                                                        offset, length,
+                                                        transfer_flags,
+                                                        &obj->transfer[index]);
+   if (obj->Mappings[index].Pointer) {
+      obj->Mappings[index].Offset = offset;
+      obj->Mappings[index].Length = length;
+      obj->Mappings[index].AccessFlags = access;
+   }
+   else {
+      obj->transfer[index] = NULL;
+   }
+
+   return obj->Mappings[index].Pointer;
+}
+
+/**
+ * Is the given dispatch table using the no-op functions?
+ * // Disable no-ops since this only really matters in cases where we don't have memory
+ */
+GLboolean
+_mesa_using_noop_vtxfmt(const struct _glapi_table *dispatch)
+{
+   return false;
+}
+
+
+
+/**
+ * Map the vertex buffer to begin storing glVertex, glColor, etc data.
+ */
+void
+vbo_exec_vtx_map(struct vbo_exec_context *exec)
+{
+   struct Ruda_Context *ctx = gl_context_from_vbo_exec(exec);
+   const GLenum usage = GL_STREAM_DRAW_ARB;
+   GLenum accessRange = GL_MAP_WRITE_BIT |  /* for MapBufferRange */
+                        GL_MAP_UNSYNCHRONIZED_BIT;
+
+   if (ctx->Extensions.ARB_buffer_storage) {
+      /* We sometimes read from the buffer, so map it for read too.
+       * Only the persistent mapping can do that, because the non-persistent
+       * mapping uses flags that are incompatible with GL_MAP_READ_BIT.
+       */
+      accessRange |= GL_MAP_PERSISTENT_BIT |
+                     GL_MAP_COHERENT_BIT |
+                     GL_MAP_READ_BIT;
+   } else {
+      accessRange |= GL_MAP_INVALIDATE_RANGE_BIT |
+                     GL_MAP_FLUSH_EXPLICIT_BIT |
+                     MESA_MAP_NOWAIT_BIT;
+   }
+
+   if (!exec->vtx.bufferobj)
+      return;
+
+   assert(!exec->vtx.buffer_map);
+   assert(!exec->vtx.buffer_ptr);
+
+   if (vbo_exec_buffer_has_space(exec)) {
+      /* The VBO exists and there's room for more */
+      if (exec->vtx.bufferobj->Size > 0) {
+         exec->vtx.buffer_map = (fi_type *)
+            _mesa_bufferobj_map_range(ctx,
+                                      exec->vtx.buffer_used,
+                                      ctx->Const.glBeginEndBufferSize
+                                      - exec->vtx.buffer_used,
+                                      accessRange,
+                                      exec->vtx.bufferobj,
+                                      MAP_INTERNAL);
+         exec->vtx.buffer_ptr = exec->vtx.buffer_map;
+      }
+      else {
+         exec->vtx.buffer_ptr = exec->vtx.buffer_map = NULL;
+      }
+   }
+
+   if (!exec->vtx.buffer_map) {
+      /* Need to allocate a new VBO */
+      exec->vtx.buffer_used = 0;
+
+      if (_mesa_bufferobj_data(ctx,
+                               ctx->Const.glBeginEndBufferSize,
+                               NULL, usage,
+                               GL_MAP_WRITE_BIT |
+                               (ctx->Extensions.ARB_buffer_storage ?
+                                GL_MAP_PERSISTENT_BIT |
+                                GL_MAP_COHERENT_BIT |
+                                GL_MAP_READ_BIT : 0) |
+                               GL_DYNAMIC_STORAGE_BIT |
+                               GL_CLIENT_STORAGE_BIT,
+                               exec->vtx.bufferobj)) {
+         /* buffer allocation worked, now map the buffer */
+         exec->vtx.buffer_map =
+            (fi_type *)_mesa_bufferobj_map_range(ctx,
+                                                 0, ctx->Const.glBeginEndBufferSize,
+                                                 accessRange,
+                                                 exec->vtx.bufferobj,
+                                                 MAP_INTERNAL);
+      }
+      else {
+         exec->vtx.buffer_map = NULL;
+      }
+   }
+
+   exec->vtx.buffer_ptr = exec->vtx.buffer_map;
+   exec->vtx.buffer_offset = 0;
+
+   // These get run in the case that there was no memory to allocate
+   // a new buffer map for a given vbo, in our case we shouldn't really encounter
+   // these issues so I'll comment it out for now.
+   if (!exec->vtx.buffer_map) {
+      /* out of memory */
+      //vbo_install_exec_vtxfmt_noop(ctx);
+   }
+   else {
+      //if (_mesa_using_noop_vtxfmt(ctx->Dispatch.Exec)) {
+         /* The no-op functions are installed so switch back to regular
+          * functions.  We do this test just to avoid frequent and needless
+          * calls to vbo_install_exec_vtxfmt().
+          */
+         //vbo_init_dispatch_begin_end(ctx);
+      //}
+   }
+
+   if (0)
+      printf("map %d..\n", exec->vtx.buffer_used);
+}
+
+
+static void
+vbo_reset_all_attr(struct vbo_exec_context *exec)
+{
+   while (exec->vtx.enabled) {
+      const int i = u_bit_scan64(&exec->vtx.enabled);
+
+      /* Reset the vertex attribute by setting its size to zero. */
+      exec->vtx.attr[i].size = 0;
+      exec->vtx.attr[i].type = GL_FLOAT;
+      exec->vtx.attr[i].active_size = 0;
+      exec->vtx.attrptr[i] = NULL;
+   }
+
+   exec->vtx.vertex_size = 0;
+}
+
+
 /**
  * Execute the buffer and save copied verts.
  */
@@ -689,6 +1191,22 @@ vbo_exec_FlushVertices_internal(struct vbo_exec_context *exec, unsigned flags)
    }
 }
 
+/* This is the usual entrypoint for state updates in glClear calls:
+ */
+void
+_mesa_update_clear_state( struct Ruda_Context *ctx )
+{
+   GLbitfield new_state = ctx->NewState;
+
+   if (new_state & _NEW_BUFFERS) {
+      _mesa_update_framebuffer(ctx, ctx->ReadBuffer, ctx->DrawBuffer);
+
+      st_invalidate_buffers(st_context(ctx));
+      ctx->NewState &= ~_NEW_BUFFERS;
+   }
+}
+
+
 /**
  * If inside glBegin()/glEnd(), it should assert(0).  Otherwise, if
  * FLUSH_STORED_VERTICES bit in \p flags is set flushes any buffered
@@ -787,8 +1305,6 @@ clear(struct Ruda_Context *ctx, uint mask, bool no_error)
    }
 
    if (!no_error && ctx->DrawBuffer->_Status != RUDA_FRAMEBUFFER_COMPLETE_EXT) {
-      _mesa_error(ctx, RUDA_INVALID_FRAMEBUFFER_OPERATION_EXT,
-                  "glClear(incomplete framebuffer)");
       return;
    }
 
@@ -799,7 +1315,7 @@ clear(struct Ruda_Context *ctx, uint mask, bool no_error)
       GLbitfield bufferMask;
 
       /* don't clear depth buffer if depth writing disabled */
-      if (!ctx->Depth.Mask)
+      //if (!ctx->Depth.Mask)
          mask &= ~RUDA_DEPTH_BUFFER_BIT;
 
       /* Build the bitmask to send to device driver's Clear function.
@@ -811,11 +1327,11 @@ clear(struct Ruda_Context *ctx, uint mask, bool no_error)
       if (mask & RUDA_COLOR_BUFFER_BIT) {
          GLuint i;
          for (i = 0; i < ctx->DrawBuffer->_NumColorDrawBuffers; i++) {
-            gl_buffer_index buf = ctx->DrawBuffer->_ColorDrawBufferIndexes[i];
+            Ruda_Buffer_Index buf = ctx->DrawBuffer->_ColorDrawBufferIndexes[i];
 
-            if (buf != BUFFER_NONE && color_buffer_writes_enabled(ctx, i)) {
-               bufferMask |= 1 << buf;
-            }
+            //if (buf != BUFFER_NONE && color_buffer_writes_enabled(ctx, i)) {
+            //   bufferMask |= 1 << buf;
+            //}
          }
       }
 
