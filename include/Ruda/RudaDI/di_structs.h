@@ -11,7 +11,7 @@
 #include "../Util/color.h"
 #include "../Ruda/structs.h"
 #include "../Util/util.h"
-#include "./di.h"
+#include "di.h"
 #include "../Ruda/rudax.h"
 
 struct DI_Structure;

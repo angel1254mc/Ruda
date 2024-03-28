@@ -325,7 +325,7 @@ nir_create_variable_with_location(nir_shader *shader, nir_variable_mode mode, in
    switch (mode) {
    case nir_var_shader_in:
       if (shader->info.stage == MESA_SHADER_VERTEX)
-         name = gl_vert_attrib_name(location);
+         name = Ruda_Vert_Attrib_Name(location);
       else
          name = gl_varying_slot_name_for_stage(location, shader->info.stage);
       break;

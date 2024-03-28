@@ -3,9 +3,9 @@
 #include <X11/Xutil.h>
 #include <X11/Xresource.h>
 #include <threads.h>
-#include "../src/util/u_idalloc.h"
-#include "../src/compiler/shader_enums.h"
-#include "../src/gallium/include/pipe/p_state.h"
+#include "../../src/util/u_idalloc.h"
+#include "../../src/compiler/shader_enums.h"
+#include "../../src/gallium/include/pipe/p_state.h"
 //#include "util/glheader.h"
 // Abstracts the Graphics Context struct from X11 to XGC to avoid ambiguity
 #define XGC GC

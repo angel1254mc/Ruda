@@ -98,13 +98,17 @@
         "structs.h": "c",
         "errors.h": "c",
         "st_context.h": "c",
-        "buffer_object.h": "c",
-        "buffer_object.cpp": "c",
+        "buffer_object.h": "cpp",
+        "buffer_object.cpp": "cpp",
         "ruda.h": "c",
         "util.h": "c",
         "st_atom.h": "c",
         "context.h": "c",
-        "di_structs.h": "c",
-        "di.h": "c"
+        "di_structs.h": "cpp",
+        "di.h": "c",
+        "macros.h": "c",
+        "nir_deref.h": "c",
+        "nir_opcodes.h": "c",
+        "nir_intrinsics.h": "c"
     }
 }

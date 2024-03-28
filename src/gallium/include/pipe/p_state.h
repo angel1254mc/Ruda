@@ -44,11 +44,11 @@
 #ifndef PIPE_STATE_H
 #define PIPE_STATE_H
 
-#include "util/u_memory.h"
+#include "../../../util/u_memory.h"
 
-#include "util/compiler.h"
+#include "../../../util/compiler.h"
 #include "p_defines.h"
-#include "util/format/u_formats.h"
+#include "../../../util/format/u_formats.h"
 
 
 #ifdef __cplusplus

@@ -729,7 +729,7 @@ typedef struct nir_variable {
        *
        * The precise meaning of this field depends on the nature of the variable.
        *
-       *   - Vertex shader input: one of the values from \c gl_vert_attrib.
+       *   - Vertex shader input: one of the values from \c Ruda_Vert_Attrib.
        *   - Vertex shader output: one of the values from \c gl_varying_slot.
        *   - Geometry shader input: one of the values from \c gl_varying_slot.
        *   - Geometry shader output: one of the values from \c gl_varying_slot.
@@ -1901,7 +1901,7 @@ typedef enum {
 #define NIR_ALIGN_MUL_MAX 0x40000000
 
 typedef struct nir_io_semantics {
-   unsigned location : 7;  /* gl_vert_attrib, gl_varying_slot, or gl_frag_result */
+   unsigned location : 7;  /* Ruda_Vert_Attrib, gl_varying_slot, or gl_frag_result */
    unsigned num_slots : 6; /* max 32, may be pessimistic with const indexing */
    unsigned dual_source_blend_index : 1;
    unsigned fb_fetch_output : 1;  /* for GL_KHR_blend_equation_advanced */

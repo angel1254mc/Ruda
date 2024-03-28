@@ -745,7 +745,7 @@ get_location_str(unsigned location, gl_shader_stage stage,
    switch (stage) {
    case MESA_SHADER_VERTEX:
       if (mode == nir_var_shader_in)
-         return gl_vert_attrib_name(location);
+         return Ruda_Vert_Attrib_Name(location);
       else if (mode == nir_var_shader_out)
          return gl_varying_slot_name_for_stage(location, stage);
 

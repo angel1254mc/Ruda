@@ -1,17 +1,18 @@
 #include "Ruda/ruda.h"
 #include "Ruda/structs.h"
+#include <iostream>
+#include <vector
 #include "RudaDI/di_structs.h"
 #include "hash.h"
 #include "../../src/util/simple_mtx.h"
 #include "../../src/util/hash_table.h"
 #include "context.h"
-#include "./state_tracker/st_atom.h"
-#include "./state_tracker/st_atom_list.h"
+#include "state_tracker.cpp"
+//#include "./state_tracker/st_atom.h"
+//#include "./state_tracker/st_atom_list.h"
 #include "../util/format/u_formats.h"
 #include "../../src/gallium/auxiliary/util/u_inlines.h"
 #include "../../src/compiler/shader_enums.h"
-#include "buffer_object.h"
-
 /**
  * Formats for textures, surfaces and vertex data
  */

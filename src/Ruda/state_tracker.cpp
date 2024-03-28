@@ -1,5 +1,5 @@
 #include "Ruda/ruda.h"
-#include "state_tracker/st_context.h"
+#include "Ruda/structs.h"
 #include "program.h"
 
 #define BITMAP_CACHE_WIDTH  512

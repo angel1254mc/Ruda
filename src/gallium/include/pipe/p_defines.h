@@ -29,12 +29,12 @@
 #define PIPE_DEFINES_H
 
 /* For pipe_blend* and pipe_logicop enums */
-#include "util/blend.h"
+#include "../../../util/blend.h"
 
-#include "util/compiler.h"
+#include "../../../util/compiler.h"
 
-#include "compiler/shader_enums.h"
-#include "util/os_time.h"
+#include "../../../compiler/shader_enums.h"
+#include "../../../util/os_time.h"
 
 #ifdef __cplusplus
 extern "C" {

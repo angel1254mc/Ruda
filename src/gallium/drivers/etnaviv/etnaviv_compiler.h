@@ -59,7 +59,7 @@ struct etna_compiler {
 /* compiler output per input/output */
 struct etna_shader_inout {
    int reg; /* native register */
-   int slot; /* nir: gl_varying_slot or gl_vert_attrib */
+   int slot; /* nir: gl_varying_slot or Ruda_Vert_Attrib */
    int num_components;
 };
 

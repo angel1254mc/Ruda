@@ -30,7 +30,7 @@
 #include <stdio.h>
 
 #include "shader_enums.h"
-#include "c11/threads.h"
+#include <threads.h>
 #include "util/blob.h"
 #include "util/format/u_format.h"
 #include "util/macros.h"

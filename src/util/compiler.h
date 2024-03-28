@@ -43,8 +43,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "util/detect.h"
-#include "util/macros.h"
+#include "detect.h"
+#include "macros.h"
 
 /**
  * Define CPU_TO_LE32

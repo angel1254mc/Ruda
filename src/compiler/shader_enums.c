@@ -113,7 +113,7 @@ _mesa_shader_stage_to_abbrev(unsigned stage)
 }
 
 const char *
-gl_vert_attrib_name(gl_vert_attrib attrib)
+Ruda_Vert_Attrib_Name(Ruda_Vert_Attrib attrib)
 {
    static const char *names[] = {
       ENUM(VERT_ATTRIB_POS),

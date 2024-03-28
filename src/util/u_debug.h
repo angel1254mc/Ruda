@@ -45,10 +45,10 @@
 #include <unistd.h>
 #endif
 
-#include "util/os_misc.h"
-#include "util/u_atomic.h"
-#include "util/detect_os.h"
-#include "util/macros.h"
+#include "os_misc.h"
+#include "u_atomic.h"
+#include "detect_os.h"
+#include "macros.h"
 
 #if DETECT_OS_HAIKU
 /* Haiku provides debug_printf in libroot with OS.h */

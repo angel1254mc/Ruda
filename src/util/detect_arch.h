@@ -48,7 +48,7 @@
 
 #include <limits.h>
 
-#include "util/detect_cc.h"
+#include "detect_cc.h"
 
 /*
  * Processor architecture

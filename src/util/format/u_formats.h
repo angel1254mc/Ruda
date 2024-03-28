@@ -29,7 +29,7 @@
 #ifndef U_FORMATS_H_
 #define U_FORMATS_H_
 
-#include "util/detect.h"
+#include "../detect.h"
 
 #ifdef __cplusplus
 extern "C" {

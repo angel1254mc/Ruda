@@ -34,8 +34,8 @@
 #ifndef U_MEMORY_H
 #define U_MEMORY_H
 
-#include "util/u_debug.h"
-#include "util/os_memory.h"
+#include "u_debug.h"
+#include "os_memory.h"
 
 
 #ifdef __cplusplus

@@ -48,21 +48,21 @@
 /*
  * Compiler detection
  */
-#include "util/detect_cc.h"
+#include "detect_cc.h"
 
 /*
  * Processor architecture detection
  */
-#include "util/detect_arch.h"
+#include "detect_arch.h"
 
 /*
  * Endian detection detection
  */
-#include "util/u_endian.h"
+#include "u_endian.h"
 
 /*
  * Operating system family detection
  */
-#include "util/detect_os.h"
+#include "detect_os.h"
 
 #endif /* UTIL_DETECT_H_ */

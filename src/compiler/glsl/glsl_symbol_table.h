@@ -27,7 +27,7 @@
 
 #include <new>
 
-#include "program/symbol_table.h"
+#include "../../Ruda/symbol_table.h"
 #include "ir.h"
 
 class symbol_table_entry;

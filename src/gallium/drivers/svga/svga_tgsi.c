@@ -282,8 +282,8 @@ done:
  * Helper function to convert tgsi semantic name to vertex attribute
  * semantic name.
  */
-static gl_vert_attrib
-svga_tgsi_to_gl_vert_attrib_semantic(unsigned sem_name,
+static Ruda_Vert_Attrib
+svga_tgsi_to_Ruda_Vert_Attrib_semantic(unsigned sem_name,
                                      unsigned sem_index)
 {
    switch (sem_name) {
@@ -432,7 +432,7 @@ svga_tgsi_scan_shader(struct svga_shader *shader)
    if (shader->stage == PIPE_SHADER_VERTEX) {
       for (unsigned i = 0; i < info->num_inputs; i++) {
          info->input_semantic_name[i] =
-            svga_tgsi_to_gl_vert_attrib_semantic(
+            svga_tgsi_to_Ruda_Vert_Attrib_semantic(
                tgsi_info->input_semantic_name[i],
                tgsi_info->input_semantic_index[i]);
          info->input_semantic_index[i] = tgsi_info->input_semantic_index[i];
