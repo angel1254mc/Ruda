@@ -28,15 +28,14 @@
 #ifndef ST_CONTEXT_H
 #define ST_CONTEXT_H
 
-#include "main/arrayobj.h"
-#include "main/mtypes.h"
+#include "../buffer_object.cpp"
+#include "Ruda/structs.h"
 #include "frontend/api.h"
-#include "main/fbobject.h"
+#include "fbobject.h"
 #include "state_tracker/st_atom.h"
 #include "util/u_helpers.h"
 #include "util/u_inlines.h"
 #include "util/list.h"
-#include "vbo/vbo.h"
 #include "util/list.h"
 #include "cso_cache/cso_context.h"
 
@@ -63,7 +62,7 @@ struct st_bitmap_cache
    GLint xmin, ymin, xmax, ymax;
 
    /** GL states */
-   struct gl_program *fp;
+   struct Ruda_Program *fp;
    bool scissor_enabled;
    bool clamp_frag_color;
    GLfloat color[4];
@@ -262,14 +261,14 @@ struct st_context
 
    union {
       struct {
-         struct gl_program *vp;    /**< Currently bound vertex program */
-         struct gl_program *tcp; /**< Currently bound tess control program */
-         struct gl_program *tep; /**< Currently bound tess eval program */
-         struct gl_program *gp;  /**< Currently bound geometry program */
-         struct gl_program *fp;  /**< Currently bound fragment program */
-         struct gl_program *cp;   /**< Currently bound compute program */
+         struct Ruda_Program *vp;    /**< Currently bound vertex program */
+         struct Ruda_Program *tcp; /**< Currently bound tess control program */
+         struct Ruda_Program *tep; /**< Currently bound tess eval program */
+         struct Ruda_Program *gp;  /**< Currently bound geometry program */
+         struct Ruda_Program *fp;  /**< Currently bound fragment program */
+         struct Ruda_Program *cp;   /**< Currently bound compute program */
       };
-      struct gl_program *current_program[MESA_SHADER_STAGES];
+      struct Ruda_Program *current_program[MESA_SHADER_STAGES];
    };
 
    struct st_common_variant *vp_variant;
@@ -342,7 +341,7 @@ struct st_context
    } pbo;
 
    struct {
-      struct gl_program **progs;
+      struct Ruda_Program **progs;
       struct pipe_resource *bc1_endpoint_buf;
       struct pipe_sampler_view *astc_luts[5];
       struct hash_table *astc_partition_tables;
@@ -410,7 +409,7 @@ struct st_context_attribs
     * The valid profiles and versions are rendering API dependent.  The latest
     * version satisfying the request should be returned.
     */
-   gl_api profile;
+   Ruda_API profile;
    int major, minor;
 
    /** Mask of ST_CONTEXT_FLAG_x bits */
@@ -435,7 +434,7 @@ struct st_context_attribs
  * Get the state tracker context for the given Mesa context.
  */
 static inline struct st_context *
-st_context(struct gl_context *ctx)
+st_context(struct Ruda_Context *ctx)
 {
    return ctx->st;
 }

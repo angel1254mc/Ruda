@@ -10,15 +10,13 @@
 #include "../util/format/u_formats.h"
 #include "../../src/gallium/auxiliary/util/u_inlines.h"
 #include "../../src/compiler/shader_enums.h"
-#include "buffer_object.h"
 
 /**
  * Formats for textures, surfaces and vertex data
  */
 enum pipe_format {
    PIPE_FORMAT_NONE,
-   /* Vertex formats must be first and must be <= 255. */
-   PIPE_FORMAT_R64_UINT,    /**< raw doubles (ARB_vertex_attrib_64bit) */
+   PIPE_FORMAT_R64_UINT,   
    PIPE_FORMAT_R64G64_UINT,
    PIPE_FORMAT_R64G64B64_UINT,
    PIPE_FORMAT_R64G64B64A64_UINT,
@@ -26,7 +24,7 @@ enum pipe_format {
    PIPE_FORMAT_R64G64_SINT,
    PIPE_FORMAT_R64G64B64_SINT,
    PIPE_FORMAT_R64G64B64A64_SINT,
-   PIPE_FORMAT_R64_FLOAT,   /**< doubles converted to float */
+   PIPE_FORMAT_R64_FLOAT,  
    PIPE_FORMAT_R64G64_FLOAT,
    PIPE_FORMAT_R64G64B64_FLOAT,
    PIPE_FORMAT_R64G64B64A64_FLOAT,
@@ -148,9 +146,6 @@ enum pipe_format {
    PIPE_FORMAT_B10G10R10A2_UINT,
    PIPE_FORMAT_B10G10R10A2_SINT,
 
-   /* End of vertex formats. */
-
-   /* Texture-only formats are below. */
    PIPE_FORMAT_B8G8R8X8_UNORM,
    PIPE_FORMAT_X8B8G8R8_UNORM,
    PIPE_FORMAT_X8R8G8B8_UNORM,
@@ -159,11 +154,11 @@ enum pipe_format {
    PIPE_FORMAT_B4G4R4A4_UNORM,
    PIPE_FORMAT_R5G6B5_UNORM,
    PIPE_FORMAT_B5G6R5_UNORM,
-   PIPE_FORMAT_L8_UNORM,    /**< ubyte luminance */
-   PIPE_FORMAT_A8_UNORM,    /**< ubyte alpha */
-   PIPE_FORMAT_I8_UNORM,    /**< ubyte intensity */
-   PIPE_FORMAT_L8A8_UNORM,  /**< ubyte alpha, luminance */
-   PIPE_FORMAT_L16_UNORM,   /**< ushort luminance */
+   PIPE_FORMAT_L8_UNORM,    
+   PIPE_FORMAT_A8_UNORM,   
+   PIPE_FORMAT_I8_UNORM,    
+   PIPE_FORMAT_L8A8_UNORM,  
+   PIPE_FORMAT_L16_UNORM,   
    PIPE_FORMAT_UYVY,
    PIPE_FORMAT_VYUY,
    PIPE_FORMAT_YUYV,
@@ -176,9 +171,7 @@ enum pipe_format {
    PIPE_FORMAT_S8_UINT_Z24_UNORM,
    PIPE_FORMAT_Z24X8_UNORM,
    PIPE_FORMAT_X8Z24_UNORM,
-   PIPE_FORMAT_S8_UINT,     /**< ubyte stencil */
-
-   /* sRGB formats */
+   PIPE_FORMAT_S8_UINT,     
    PIPE_FORMAT_L8_SRGB,
    PIPE_FORMAT_R8_SRGB,
    PIPE_FORMAT_L8A8_SRGB,
@@ -214,11 +207,10 @@ enum pipe_format {
    PIPE_FORMAT_R8G8_B8G8_UNORM,
    PIPE_FORMAT_G8R8_G8B8_UNORM,
 
-   /* mixed formats */
+   
    PIPE_FORMAT_R8SG8SB8UX8U_NORM,
    PIPE_FORMAT_R5SG5SB6U_NORM,
 
-   /* TODO: re-order these */
    PIPE_FORMAT_A8B8G8R8_UNORM,
    PIPE_FORMAT_B5G5R5X1_UNORM,
    PIPE_FORMAT_R9G9B9E5_FLOAT,
@@ -234,7 +226,6 @@ enum pipe_format {
    PIPE_FORMAT_R8G8B8X8_UNORM,
    PIPE_FORMAT_B4G4R4X4_UNORM,
 
-   /* some stencil samplers formats */
    PIPE_FORMAT_X24S8_UINT,
    PIPE_FORMAT_S8X24_UINT,
    PIPE_FORMAT_X32_S8X24_UINT,
@@ -270,13 +261,12 @@ enum pipe_format {
 
    PIPE_FORMAT_YV12,
    PIPE_FORMAT_YV16,
-   PIPE_FORMAT_IYUV,  /**< aka I420 */
+   PIPE_FORMAT_IYUV, 
    PIPE_FORMAT_NV12,
    PIPE_FORMAT_NV21,
 
    PIPE_FORMAT_Y8_400_UNORM,
-   /* PIPE_FORMAT_Y8_U8_V8_420_UNORM = IYUV */
-   /* PIPE_FORMAT_Y8_U8V8_420_UNORM = NV12 */
+   
    PIPE_FORMAT_Y8_U8_V8_422_UNORM,
    PIPE_FORMAT_Y8_U8V8_422_UNORM,
    PIPE_FORMAT_Y8_U8_V8_444_UNORM,
@@ -590,6 +580,11 @@ enum pipe_format {
 #define PIPE_FORMAT_RG1616_SNORM PIPE_FORMAT_G16R16_SNORM
 #define PIPE_FORMAT_GR1616_SNORM PIPE_FORMAT_R16G16_SNORM
 #endif
+
+void
+_mesa_reference_vao_(struct Ruda_Context *ctx,
+                     struct Ruda_Vertex_Array_Object **ptr,
+                     struct Ruda_Vertex_Array_Object *vao);
 
 enum pipe_video_chroma_format
 {

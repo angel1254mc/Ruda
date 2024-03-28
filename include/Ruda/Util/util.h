@@ -1,6 +1,6 @@
 #pragma once
 #include <stdio.h>
-#include <string>
+#include <string.h>
 #include <threads.h>
 
 void print(std::string string);

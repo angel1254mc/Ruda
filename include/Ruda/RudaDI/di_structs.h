@@ -7,7 +7,7 @@
 #include <unistd.h>
 #include <iostream>
 #include <vector>
-#include <string>
+#include <string.h>
 #include "../Util/color.h"
 #include "../Ruda/structs.h"
 #include "../Util/util.h"

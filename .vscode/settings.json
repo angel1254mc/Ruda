@@ -97,6 +97,14 @@
         "xm_st.h": "c",
         "structs.h": "c",
         "errors.h": "c",
-        "st_context.h": "c"
+        "st_context.h": "c",
+        "buffer_object.h": "c",
+        "buffer_object.cpp": "c",
+        "ruda.h": "c",
+        "util.h": "c",
+        "st_atom.h": "c",
+        "context.h": "c",
+        "di_structs.h": "c",
+        "di.h": "c"
     }
 }
